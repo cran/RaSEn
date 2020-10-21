@@ -2,9 +2,9 @@
 % Please edit documentation in R/RaModel.R
 \name{RaModel}
 \alias{RaModel}
-\title{Generate data \eqn{(x, y)} from 4 models.}
+\title{Generate data \eqn{(x, y)} from 6 models.}
 \usage{
-RaModel(Model.No, n, p, p0 = 1/2)
+RaModel(Model.No, n, p, p0 = 1/2, sparse = TRUE)
 }
 \arguments{
 \item{Model.No}{model number, which can be 1, 2, 3, 4.}
@@ -14,22 +14,27 @@ RaModel(Model.No, n, p, p0 = 1/2)
 \item{p}{data dimension}
 
 \item{p0}{marginal probability of class 0. Default = 0.5. Only available when Model.No = 1, 2, 3.}
+
+\item{sparse}{a logistic object indicating model sparsity. Default = TRUE. Only available when Model.No = 1, 4. When it equals to FALSE, the data is generated from model 1' or 4' as described in Tian, Y. and Feng, Y., 2020.}
 }
 \value{
 \item{x}{n * p matrix. n observations and p features.}
 \item{y}{n 0/1 observations.}
 }
 \description{
-\code{RaModel} generates data from 4 models described in Ye Tian and Yang Feng (2020).
+\code{RaModel} generates data from 6 models described in Tian, Y. and Feng, Y., 2020.
 }
 \note{
-Model 1, 2 and 4 require \eqn{p \ge 5}. Model 3 requires \eqn{p \ge 50}.
+Models 1, 2 and 4 require \eqn{p \ge 5}. Models 1' and 3 requires \eqn{p \ge 50}. Model 4' requires \eqn{p \ge 30}.
 }
 \examples{
 train.data <- RaModel(1, n = 100, p = 50)
 xtrain <- train.data$x
 ytrain <- train.data$y
 
+}
+\references{
+Tian, Y. and Feng, Y., 2020. RaSE: Random subspace ensemble classification. arXiv preprint arXiv:2006.08855.
 }
 \seealso{
 \code{\link{Rase}}

@@ -34,7 +34,7 @@ library(formatR)
 ## Introduction{#intro}
 Suppose we have training data $\{\mathbf{x}_i, y_i\}_{i=1}^n \in \{\mathbb{R}^p, \{0, 1\}\}$, where each $\mathbf{x}_i$ is a $1 \times p$ vector.
 
-Based on training data, RaSE algorithm aims to generate $B_1$ weak learners $\{C_n^{S_j}\}_{j=1}^{B_1}$, each of which is constructed in a feature subspace $S_j \subseteq \{1, ..., p\}$ instead using all $p$ features. To obtain each weak learner, $B_2$ candidates $\{C_n^{S_{jk}}\}_{k=1}^{B_2}$ are trained based in subspaces $\{S_{jk}\}_{k=1}^{B_2}$, respectively. To choose the optimal one among these $B_2$ candidates, some criteria need to be applied, including minimizing ratio information criterion (RIC, @ye2020rase), minimizing extended Bayes information criterion (eBIC, @chen2008extended, @chen2012extended), minimizing the training error, minimizing the validation error (if validation data is available), minimizing the cross-validation error, minimizing leave-one-out error etc. And the type of weak learner can be quite flexible.
+Based on training data, RaSE algorithm aims to generate $B_1$ weak learners $\{C_n^{S_{j*}}\}_{j=1}^{B_1}$, each of which is constructed in a feature subspace $S_{j*} \subseteq \{1, ..., p\}$ instead using all $p$ features. To obtain each weak learner, $B_2$ candidates $\{C_n^{S_{jk}}\}_{k=1}^{B_2}$ are trained based in subspaces $\{S_{jk}\}_{k=1}^{B_2}$, respectively. To choose the optimal one among these $B_2$ candidates, some criteria need to be applied, including minimizing ratio information criterion (RIC, @tian2020rase), minimizing extended Bayes information criterion (eBIC, @chen2008extended, @chen2012extended), minimizing the training error, minimizing the validation error (if validation data is available), minimizing the cross-validation error, minimizing leave-one-out error etc. And the type of weak learner can be quite flexible.
 
 To better adapt RaSE into the sparse setting, we can update the distribution of random feature subspaces according to the selected percentage of features in $B_1$ subspaces in each round. This can be seen as an adaptive strategy to increase the possibility to cover the signals that contribute to our model, which can improve the performance of RaSE classifiers in sparse settings.
 
@@ -56,7 +56,7 @@ library(RaSEn)
 <a id="rase"></a>
 
 ## How to Fit a RaSE Classifier for Prediction{#rase}
-We will show in this section how to fit RaSE classifiers based on different types of base classifiers. First we generate the data from a binary guanssian mixture model (Model 1 in @ye2020rase)
+We will show in this section how to fit RaSE classifiers based on different types of base classifiers. First we generate the data from a binary guanssian mixture model (Model 1 in @tian2020rase)
 $$
   \mathbf{x} \sim (1-y)N(\mathbf{\mu}^{(0)}, \Sigma) + yN(\mathbf{\mu}^{(1)}, \Sigma),
 $$
@@ -87,11 +87,11 @@ Similarly, we can also visualize the feature 6 and 7:
 ```{r, tidy=TRUE, tidy.opts=list(width.cutoff=80)}
 ggplot(data = data.frame(xtrain, y = factor(ytrain)), mapping = aes(x = X6, y = X7, color = y)) + geom_point()
 ```
-It's obvious to see that in dimension 1 and 2 the data from two classes are more linearly seperate than in dimension 6 and 7. Then we call `Rase` function to fit the RaSE classifier with LDA, QDA and logistic regression base classifiers with criterion of minimizing RIC and RaSE classifier with knn base classifier with criterion of minimizing leave-one-out error. To use different types of base classifier, we set `base` as "lda", "qda", "knn" and "logistic", repectively. `B1` is set to be 100 to generate 100 weak learners and `B2` is set to be 100 as well to generate 100 subspace candidates for each weak learner. Without using iterations, we set `iteration` as 0. `criterion` is set to be "ric" for RaSE classifier with LDA, QDA and logistic regression while it is "loo" for RaSE classifier with knn base classifier. To speed up the computation, we apply parallel computing with 2 cores by setting `cores = 2`.
+It's obvious to see that in dimension 1 and 2 the data from two classes are more linearly seperate than in dimension 6 and 7. Then we call `Rase` function to fit the RaSE classifier with LDA, QDA and logistic regression base classifiers with criterion of minimizing RIC and RaSE classifier with knn base classifier with criterion of minimizing leave-one-out error. To use different types of base classifier, we set `base` as "lda", "qda", "knn" and "logistic", repectively. `B1` is set to be 100 to generate 100 weak learners and `B2` is set to be 50 as well to generate 50 subspace candidates for each weak learner. Without using iterations, we set `iteration` as 0. `criterion` is set to be "ric" for RaSE classifier with LDA, QDA and logistic regression while it is "loo" for RaSE classifier with knn base classifier. To speed up the computation, we apply parallel computing with 2 cores by setting `cores = 2`.
 ```{r, tidy=TRUE, tidy.opts=list(width.cutoff=70)}
 fit.lda <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, base = "lda", cores = 2, criterion = "ric")
 fit.qda <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, base = "qda", cores = 2, criterion = "ric")
-fit.knn <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, base = "knn", cores = 2, criterion = "loo",)
+fit.knn <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, base = "knn", cores = 2, criterion = "loo")
 fit.logistic <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, base = "logistic", cores = 2, criterion = "ric")
 ```
 We can print the summarized results of RaSE model by calling `print` function. For instance, we print the RaSE model with LDA base classifier:
@@ -125,6 +125,7 @@ And the output of `Rase` function is an object belonging to S3 class "RaSE". It 
 
 * ranking: the selected percentage of each feature in B1 subspaces.
 
+* C0: the threshold used to adjust the sampling probabilities of features when `iteration` > 0.
 
 ## How to Use RaSE for Feature Ranking{#fk}
 The selected percentage of features in $B_1$ subspaces for four RaSE classifiers are contained in the output, which can be used for feature ranking. We can plot them by using `RaPlot` function:
@@ -136,9 +137,16 @@ plot_knn<- RaPlot(fit.knn)
 plot_logistic <- RaPlot(fit.logistic)
 
 grid.arrange(plot_lda, plot_qda, plot_knn, plot_logistic, ncol=2)
-
 ```
-From four figures, it can be noticed that feature 1, 2 and 5 obtain higher selected percentage than the others among all $p = 50$ features when the base classifier is chosen to be LDA, QDA and $k$NN, implying their importance in classification model. We can set a positive iteration number to increase the selected percentage of three signals among $B_1$ subspaces, which may improve the performance.
+From four figures, it can be noticed that feature 1, 2 and 5 obtain higher selected percentage than the others among all $p = 50$ features when the base classifier is chosen to be LDA, QDA and $k$NN, implying their importance in classification model. We can set a positive iteration number to increase the selected percentage of three signals among $B_1$ subspaces as follows, which may improve the performance.
+
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=70), eval=FALSE}
+library(gridExtra)
+fit.lda <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 1, base = "lda", cores = 2, criterion = "ric")
+fit.qda <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 1, base = "qda", cores = 2, criterion = "ric")
+fit.knn <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 1, base = "knn", cores = 2, criterion = "loo")
+fit.logistic <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 1, base = "logistic", cores = 2, criterion = "ric")
+```
 
 ## Reference
 

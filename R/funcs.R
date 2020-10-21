@@ -75,7 +75,8 @@ calc_lda_BIC = function(xx, yy, cur_set, D, K, debug = F, gam = 0) {
 calc_BIC = function(xx, yy, terms, D, K, debug = F, gam = 0) {
     N = length(yy)
     D = ncol(xx)
-    K = max(yy)
+
+    # K = max(yy)
     d = length(terms)
 
     ll = 0

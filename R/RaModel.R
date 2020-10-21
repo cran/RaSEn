@@ -1,23 +1,26 @@
-#' Generate data \eqn{(x, y)} from 4 models.
+#' Generate data \eqn{(x, y)} from 6 models.
 #'
-#' \code{RaModel} generates data from 4 models described in Ye Tian and Yang Feng (2020).
+#' \code{RaModel} generates data from 6 models described in Tian, Y. and Feng, Y., 2020.
 #' @export
 #' @param Model.No model number, which can be 1, 2, 3, 4.
 #' @param n sample size
 #' @param p data dimension
 #' @param p0 marginal probability of class 0. Default = 0.5. Only available when Model.No = 1, 2, 3.
+#' @param sparse a logistic object indicating model sparsity. Default = TRUE. Only available when Model.No = 1, 4. When it equals to FALSE, the data is generated from model 1' or 4' as described in Tian, Y. and Feng, Y., 2020.
 #' @return
 #' \item{x}{n * p matrix. n observations and p features.}
 #' \item{y}{n 0/1 observations.}
-#' @note Model 1, 2 and 4 require \eqn{p \ge 5}. Model 3 requires \eqn{p \ge 50}.
+#' @note Models 1, 2 and 4 require \eqn{p \ge 5}. Models 1' and 3 requires \eqn{p \ge 50}. Model 4' requires \eqn{p \ge 30}.
 #' @seealso \code{\link{Rase}}
 #' @examples
 #' train.data <- RaModel(1, n = 100, p = 50)
 #' xtrain <- train.data$x
 #' ytrain <- train.data$y
 #'
+#' @references
+#' Tian, Y. and Feng, Y., 2020. RaSE: Random subspace ensemble classification. arXiv preprint arXiv:2006.08855.
 
-RaModel <- function(Model.No, n, p, p0 = 1/2) {
+RaModel <- function(Model.No, n, p, p0 = 1/2, sparse = TRUE) {
     if (Model.No == 1) {
         Y1 <- rmultinom(1, n, c(p0, 1 - p0))
         Y <- c(rep(0, Y1[1, 1]), rep(1, Y1[2, 1]))
@@ -26,7 +29,11 @@ RaModel <- function(Model.No, n, p, p0 = 1/2) {
         })
 
         mu0 <- rep(0, p)
-        mu1 <- 0.556 * Sigma %*% c(3, 1.5, 0, 0, 2, rep(0, p - 5))
+        if (sparse) {
+            mu1 <- 0.556 * Sigma %*% c(3, 1.5, 0, 0, 2, rep(0, p - 5))
+        } else {
+            mu1 <- 0.556 * Sigma %*% c(0.9^(1:50), rep(0, p-50))
+        }
 
         X0 <- mvrnorm(Y1[1, 1], mu0, Sigma)
         X1 <- mvrnorm(Y1[2, 1], mu1, Sigma)
@@ -80,13 +87,23 @@ RaModel <- function(Model.No, n, p, p0 = 1/2) {
     if (Model.No == 4) {
         X0 <- mvrnorm(n = 10, mu = rep(0, p), Sigma = diag(p))
         Y0 <- rep(c(0, 1), each = 5)
-        Ds <- sapply(1:n, function(o) {
-            i0 <- sample(10, 1)
-            c(mvrnorm(n = 1, mu = c(X0[i0, 1:5], rep(0, p - 5)), Sigma = 0.5^2 * diag(p)), Y0[i0])
-        })
+        if (sparse) {
+            Ds <- sapply(1:n, function(o) {
+                i0 <- sample(10, 1)
+                c(mvrnorm(n = 1, mu = c(X0[i0, 1:5], rep(0, p - 5)), Sigma =  0.5^2*diag(p)), Y0[i0])
+            })
+        } else {
+            Ds <- sapply(1:n, function(o) {
+                i0 <- sample(10, 1)
+                c(mvrnorm(n = 1, mu = c(X0[i0, 1:30], rep(0, p - 30)), Sigma =  2*diag(p)), Y0[i0])
+            })
+        }
+
         X <- t(Ds[-nrow(Ds), ])
         Y <- Ds[nrow(Ds), ]
     }
+
+
 
     return(list(x = X, y = Y))
 }

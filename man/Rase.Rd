@@ -9,9 +9,9 @@ Rase(
   ytrain,
   xval = NULL,
   yval = NULL,
-  B1 = 100,
+  B1 = 200,
   B2 = 500,
-  dmax = NULL,
+  D = NULL,
   dist = NULL,
   base = c("lda", "qda", "knn", "logistic", "tree", "svm", "randomforest", "gamma"),
   criterion = NULL,
@@ -23,6 +23,8 @@ Rase(
   cutoff = TRUE,
   cv = 10,
   scale = FALSE,
+  C0 = 0.1,
+  kl.k = NULL,
   ...
 )
 }
@@ -35,13 +37,13 @@ Rase(
 
 \item{yval}{0/1 observation for validation. Default = \code{NULL}. Useful only when \code{criterion} = 'validation'.}
 
-\item{B1}{the number of weak learners. Default = 100.}
+\item{B1}{the number of weak learners. Default = 200.}
 
 \item{B2}{the number of subspace candidates generated for each weak learner. Default = 500.}
 
-\item{dmax}{the maximal subspace size when generating random subspaces from the uniform distribution. Default = \code{NULL}, which is \eqn{min(\sqrt n0, \sqrt n1, p)} when \code{base} = 'lda' and is \eqn{min(\sqrt n, p)} otherwise.}
+\item{D}{the maximal subspace size when generating random subspaces from the uniform distribution. Default = \code{NULL}, which is \eqn{min(\sqrt n0, \sqrt n1, p)} when \code{base} = 'lda' and is \eqn{min(\sqrt n, p)} otherwise.}
 
-\item{dist}{the distribution for features when generating random subspaces. Default = \code{NULL}, which represents the uniform distribution. First generate an integer \eqn{d} from \eqn{1,...,dmax} uniformly, then uniformly generate a subset with cardinality \eqn{d}.}
+\item{dist}{the distribution for features when generating random subspaces. Default = \code{NULL}, which represents the uniform distribution. First generate an integer \eqn{d} from \eqn{1,...,D} uniformly, then uniformly generate a subset with cardinality \eqn{d}.}
 
 \item{base}{the type of base classifier. Default = 'lda'.
 \itemize{
@@ -57,7 +59,8 @@ Rase(
 
 \item{criterion}{the criterion to choose the best subspace for each weak learner. Default = 'ric' when \code{base} = 'lda', 'qda', 'gamma'; default = 'ebic' and set \code{gam} = 0 when \code{base} = 'logistic'; default = 'loo' when \code{base} = 'knn'; default = 'training' when \code{base} = 'tree', 'svm', 'randomforest'.
 \itemize{
-\item ric: minimizing ratio information criterion (Tian, Y. and Feng, Y., 2020). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
+\item ric: minimizing ratio information criterion with parametric estimation (Tian, Y. and Feng, Y., 2020). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
+\item nric: minimizing ratio information criterion with non-parametric estimation (Tian, Y. and Feng, Y., 2020; Wang, Q., Kulkarni, S.R. and Verdú, S., 2009). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
 \item training: minimizing training error. Not available when \code{base} = 'knn'.
 \item loo: minimizing leave-one-out error. Only available when  \code{base} = 'knn'.
 \item validation: minimizing validation error based on the validation data. Available for all base classifiers.
@@ -83,6 +86,10 @@ EBIC = -2 * log-likelihood + |S| * log(n) + 2 * |S| * gam * log(p).
 
 \item{scale}{whether to normalize the data. Logistic, default = FALSE.}
 
+\item{C0}{the threshold used to adjust the sampling probabilities of features when \code{iteration} > 0. Default = 0.1.}
+
+\item{kl.k}{the number of nearest neighbors used to estimate KL divergences when \code{criterion} = 'nric'. 2-dimensional vector. Default = \code{NULL}, in which case it will be set as \eqn{\sqrt n0, \sqrt n1}.}
+
 \item{...}{additional arguments.}
 }
 \value{
@@ -98,6 +105,7 @@ An object with S3 class \code{'RaSE'}.
 \item{subspace}{sequence of subspaces correponding to B1 weak learners.}
 \item{ranking}{the selected percentage of each feature in B1 subspaces.}
 \item{scale}{a list of scaling parameters, including the scaling center and the scale parameter for each feature. Equals to \code{NULL} when the data is not scaled in \code{RaSE} model fitting.}
+\item{C0}{the threshold used to adjust the sampling probabilities of features when \code{iteration} > 0.}
 }
 \description{
 \code{Rase} is a novel model-free ensemble classification framework to solve the sparse classification problem. In RaSE algorithm, for each of the B1 weak learners, B2 random subspaces are generated and the optimal one is chosen to train the model on the basis of some criterion.
@@ -149,11 +157,13 @@ mean(predict(fit, xtest) != ytest)
 }
 }
 \references{
-Tian, Y. and Feng, Y., 2020. RaSE: Random subspace ensemble classification.
+Tian, Y. and Feng, Y., 2020. RaSE: Random subspace ensemble classification. arXiv preprint arXiv:2006.08855.
 
 Chen, J. and Chen, Z., 2008. Extended Bayesian information criteria for model selection with large model spaces. Biometrika, 95(3), pp.759-771.
 
 Chen, J. and Chen, Z., 2012. Extended BIC for small-n-large-P sparse GLM. Statistica Sinica, pp.555-574.
+
+Wang, Q., Kulkarni, S.R. and Verdú, S., 2009. Divergence estimation for multidimensional densities via $ k $-nearest-neighbor distances. IEEE Transactions on Information Theory, 55(5), pp.2392-2405.#' @examples
 }
 \seealso{
 \code{\link{predict.RaSE}}, \code{\link{RaModel}}, \code{\link{print.RaSE}}, \code{\link{RaPlot}}.

@@ -26,7 +26,7 @@ ggplot(data = data.frame(xtrain, y = factor(ytrain)), mapping = aes(x = X6, y = 
 ## ---- tidy=TRUE, tidy.opts=list(width.cutoff=70)------------------------------
 fit.lda <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, base = "lda", cores = 2, criterion = "ric")
 fit.qda <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, base = "qda", cores = 2, criterion = "ric")
-fit.knn <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, base = "knn", cores = 2, criterion = "loo",)
+fit.knn <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, base = "knn", cores = 2, criterion = "loo")
 fit.logistic <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, base = "logistic", cores = 2, criterion = "ric")
 
 ## ---- tidy=TRUE, tidy.opts=list(width.cutoff=70)------------------------------
@@ -48,4 +48,10 @@ plot_logistic <- RaPlot(fit.logistic)
 
 grid.arrange(plot_lda, plot_qda, plot_knn, plot_logistic, ncol=2)
 
+## ---- tidy=TRUE, tidy.opts=list(width.cutoff=70), eval=FALSE------------------
+#  library(gridExtra)
+#  fit.lda <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 1, base = "lda", cores = 2, criterion = "ric")
+#  fit.qda <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 1, base = "qda", cores = 2, criterion = "ric")
+#  fit.knn <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 1, base = "knn", cores = 2, criterion = "loo")
+#  fit.logistic <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 1, base = "logistic", cores = 2, criterion = "ric")
 

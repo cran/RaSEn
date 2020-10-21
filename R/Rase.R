@@ -41,14 +41,15 @@
 #' @importFrom ggplot2 labs
 #' @importFrom gridExtra grid.arrange
 #' @importFrom formatR tidy_eval
+#' @importFrom FNN KL.divergence
 #' @param xtrain n * p observation matrix. n observations, p features.
 #' @param ytrain n 0/1 observatons.
 #' @param xval observation matrix for validation. Default = \code{NULL}. Useful only when \code{criterion} = 'validation'.
 #' @param yval 0/1 observation for validation. Default = \code{NULL}. Useful only when \code{criterion} = 'validation'.
-#' @param B1 the number of weak learners. Default = 100.
+#' @param B1 the number of weak learners. Default = 200.
 #' @param B2 the number of subspace candidates generated for each weak learner. Default = 500.
-#' @param dmax the maximal subspace size when generating random subspaces from the uniform distribution. Default = \code{NULL}, which is \eqn{min(\sqrt n0, \sqrt n1, p)} when \code{base} = 'lda' and is \eqn{min(\sqrt n, p)} otherwise.
-#' @param dist the distribution for features when generating random subspaces. Default = \code{NULL}, which represents the uniform distribution. First generate an integer \eqn{d} from \eqn{1,...,dmax} uniformly, then uniformly generate a subset with cardinality \eqn{d}.
+#' @param D the maximal subspace size when generating random subspaces from the uniform distribution. Default = \code{NULL}, which is \eqn{min(\sqrt n0, \sqrt n1, p)} when \code{base} = 'lda' and is \eqn{min(\sqrt n, p)} otherwise.
+#' @param dist the distribution for features when generating random subspaces. Default = \code{NULL}, which represents the uniform distribution. First generate an integer \eqn{d} from \eqn{1,...,D} uniformly, then uniformly generate a subset with cardinality \eqn{d}.
 #' @param base the type of base classifier. Default = 'lda'.
 #' \itemize{
 #' \item lda: linear discriminant analysis. \code{\link[MASS]{lda}} in \code{MASS} package.
@@ -62,7 +63,8 @@
 #' }
 #' @param criterion the criterion to choose the best subspace for each weak learner. Default = 'ric' when \code{base} = 'lda', 'qda', 'gamma'; default = 'ebic' and set \code{gam} = 0 when \code{base} = 'logistic'; default = 'loo' when \code{base} = 'knn'; default = 'training' when \code{base} = 'tree', 'svm', 'randomforest'.
 #' \itemize{
-#' \item ric: minimizing ratio information criterion (Tian, Y. and Feng, Y., 2020). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
+#' \item ric: minimizing ratio information criterion with parametric estimation (Tian, Y. and Feng, Y., 2020). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
+#' \item nric: minimizing ratio information criterion with non-parametric estimation (Tian, Y. and Feng, Y., 2020; Wang, Q., Kulkarni, S.R. and Verdú, S., 2009). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
 #' \item training: minimizing training error. Not available when \code{base} = 'knn'.
 #' \item loo: minimizing leave-one-out error. Only available when  \code{base} = 'knn'.
 #' \item validation: minimizing validation error based on the validation data. Available for all base classifiers.
@@ -79,6 +81,8 @@
 #' @param cutoff whether to use the empirically optimal threshold. Logistic, default = TRUE. If it is FALSE, the threshold will be set as 0.5.
 #' @param cv the number of cross-validations used. Default = 10. Only useful when \code{criterion} = 'cv'.
 #' @param scale whether to normalize the data. Logistic, default = FALSE.
+#' @param C0 the threshold used to adjust the sampling probabilities of features when \code{iteration} > 0. Default = 0.1.
+#' @param kl.k the number of nearest neighbors used to estimate KL divergences when \code{criterion} = 'nric'. 2-dimensional vector. Default = \code{NULL}, in which case it will be set as \eqn{\sqrt n0, \sqrt n1}.
 #' @param ... additional arguments.
 #' @return An object with S3 class \code{'RaSE'}.
 #' \item{marginal}{the marginal probability for each class.}
@@ -92,13 +96,17 @@
 #' \item{subspace}{sequence of subspaces correponding to B1 weak learners.}
 #' \item{ranking}{the selected percentage of each feature in B1 subspaces.}
 #' \item{scale}{a list of scaling parameters, including the scaling center and the scale parameter for each feature. Equals to \code{NULL} when the data is not scaled in \code{RaSE} model fitting.}
+#' \item{C0}{the threshold used to adjust the sampling probabilities of features when \code{iteration} > 0.}
 #' @seealso \code{\link{predict.RaSE}}, \code{\link{RaModel}}, \code{\link{print.RaSE}}, \code{\link{RaPlot}}.
 #' @references
-#' Tian, Y. and Feng, Y., 2020. RaSE: Random subspace ensemble classification.
+#' Tian, Y. and Feng, Y., 2020. RaSE: Random subspace ensemble classification. arXiv preprint arXiv:2006.08855.
 #'
 #' Chen, J. and Chen, Z., 2008. Extended Bayesian information criteria for model selection with large model spaces. Biometrika, 95(3), pp.759-771.
 #'
 #' Chen, J. and Chen, Z., 2012. Extended BIC for small-n-large-P sparse GLM. Statistica Sinica, pp.555-574.
+#'
+#' Wang, Q., Kulkarni, S.R. and Verdú, S., 2009. Divergence estimation for multidimensional densities via $ k $-nearest-neighbor distances. IEEE Transactions on Information Theory, 55(5), pp.2392-2405.#' @examples
+#'
 #' @examples
 #' set.seed(0, kind = "L'Ecuyer-CMRG")
 #' train.data <- RaModel(1, n = 100, p = 50)
@@ -145,9 +153,9 @@
 #' mean(predict(fit, xtest) != ytest)
 #' }
 
-Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, dmax = NULL, dist = NULL, base = c("lda",
+Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 200, B2 = 500, D = NULL, dist = NULL, base = c("lda",
     "qda", "knn", "logistic", "tree", "svm", "randomforest", "gamma"), criterion = NULL, ranking = TRUE, k = c(3, 5, 7, 9, 11), cores = 1,
-    seed = NULL, iteration = 0, cutoff = TRUE, cv = 10, scale = FALSE, ...) {
+    seed = NULL, iteration = 0, cutoff = TRUE, cv = 10, scale = FALSE, C0 = 0.1, kl.k = NULL, ...) {
 
 
     if (!is.null(seed)) {
@@ -167,12 +175,18 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
         }
     }
 
+
     xtrain <- as.matrix(xtrain)
     base <- match.arg(base)
     p <- ncol(xtrain)
     n <- length(ytrain)
     n0 <- sum(ytrain == 0)
     n1 <- sum(ytrain == 1)
+
+
+    if(is.null(kl.k)) {
+        kl.k <- floor(c(sqrt(n0), sqrt(n1)))
+    }
 
     if (scale == TRUE) {
         L <- scale_Rase(xtrain)
@@ -196,8 +210,8 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
         sig.ind <- setdiff(1:p, delete.ind)
 
         # estimate parameters
-        if (is.null(dmax)) {
-            dmax <- floor(min(sqrt(n), length(sig.ind)))
+        if (is.null(D)) {
+            D <- floor(min(sqrt(n), length(sig.ind)))
         }
         Sigma.mle <- ((n0 - 1) * cov(xtrain[ytrain == 0, , drop = F]) + (n1 - 1) * cov(xtrain[ytrain == 1, , drop = F]))/n
         mu0.mle <- colMeans(xtrain[ytrain == 0, , drop = F])
@@ -209,8 +223,8 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
         for (t in 1:(iteration + 1)) {
             output <- foreach(i = 1:B1, .combine = "rbind", .packages = "MASS") %dopar% {
                 S <- sapply(1:B2, function(j) {
-                  S.size <- sample(1:dmax, 1)
-                  c(sample(1:p, size = min(S.size, length(dist[dist != 0])), prob = dist), rep(NA, dmax - min(S.size, length(dist[dist !=
+                  S.size <- sample(1:D, 1)
+                  c(sample(1:p, size = min(S.size, length(dist[dist != 0])), prob = dist), rep(NA, D - min(S.size, length(dist[dist !=
                     0]))))
                 })
                 S <- sapply(1:B2, function(j) {
@@ -221,10 +235,11 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
                       snew <- snew[-ind0]
                     }
                   }
-                  c(snew, rep(NA, dmax - length(snew)))
+                  c(snew, rep(NA, D - length(snew)))
                 })
-                RaSubset(xtrain = xtrain, ytrain = ytrain, xval = xval, yval = yval, B2 = B2, S = S, base = base, k = k,
-                  criterion = criterion, cv = cv, mu0.mle = mu0.mle, mu1.mle = mu1.mle, Sigma.mle = Sigma.mle, ...)
+
+                 RaSubset(xtrain = xtrain, ytrain = ytrain, xval = xval, yval = yval, B2 = B2, S = S, base = base, k = k,
+                  criterion = criterion, cv = cv, mu0.mle = mu0.mle, mu1.mle = mu1.mle, Sigma.mle = Sigma.mle, kl.k = kl.k, ...)
             }
 
             subspace <- output[, 3]
@@ -234,7 +249,11 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
                 s[subspace[[i]]] <- s[subspace[[i]]] + 1
             }
 
+
             dist <- s/sum(s)
+            dist[dist < C0/log(p)] <- C0/p
+            dist[delete.ind] <- 0
+
             ytrain.pred <- data.frame(matrix(unlist(output[, 2]), ncol = B1))
 
         }
@@ -263,8 +282,8 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
         sig.ind <- setdiff(1:p, delete.ind)
 
         # estimate parameters
-        if (is.null(dmax)) {
-            dmax <- floor(min(sqrt(n0), sqrt(n1), length(sig.ind)))
+        if (is.null(D)) {
+            D <- floor(min(sqrt(n0), sqrt(n1), length(sig.ind)))
         }
         Sigma0.mle <- (n0 - 1)/n0 * cov(xtrain[ytrain == 0, , drop = F])
         Sigma1.mle <- (n1 - 1)/n1 * cov(xtrain[ytrain == 1, , drop = F])
@@ -274,12 +293,12 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
         # start loops
         dist <- rep(1, p)
         dist[delete.ind] <- 0
+
         for (t in 1:(iteration + 1)) {
             output <- foreach(i = 1:B1, .combine = "rbind", .packages = "MASS") %dopar% {
                 S <- sapply(1:B2, function(j) {
-                  S.size <- sample(1:dmax, 1)
-                  c(sample(1:p, size = min(S.size, length(dist[dist != 0])), prob = dist), rep(NA, dmax - min(S.size, length(dist[dist !=
-                    0]))))
+                  S.size <- sample(1:D, 1)
+                  c(sample(1:p, size = min(S.size, sum(dist != 0)), prob = dist), rep(NA, D - min(S.size, sum(dist != 0))))
                 })
                 S <- sapply(1:B2, function(j) {
                   snew <- S[!is.na(S[, j]), j]
@@ -290,10 +309,10 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
                       snew <- snew[-c(ind0, ind1)]
                     }
                   }
-                  c(snew, rep(NA, dmax - length(snew)))
+                  c(snew, rep(NA, D - length(snew)))
                 })
                 RaSubset(xtrain = xtrain, ytrain = ytrain, xval = xval, yval = yval, B2 = B2, S = S, base = base, k = k,
-                  criterion = criterion, cv = cv, mu0.mle = mu0.mle, mu1.mle = mu1.mle, Sigma0.mle = Sigma0.mle, Sigma1.mle = Sigma1.mle,
+                  criterion = criterion, cv = cv, mu0.mle = mu0.mle, mu1.mle = mu1.mle, Sigma0.mle = Sigma0.mle, Sigma1.mle = Sigma1.mle, kl.k = kl.k,
                   ...)
             }
 
@@ -305,6 +324,9 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
             }
 
             dist <- s/sum(s)
+            dist[dist < C0/log(p)] <- C0/p
+            dist[delete.ind] <- 0
+
             ytrain.pred <- data.frame(matrix(unlist(output[, 2]), ncol = B1))
 
         }
@@ -315,8 +337,8 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
 
     if (base == "knn") {
         # estimate parameters
-        if (is.null(dmax)) {
-            dmax <- floor(min(sqrt(n), p))
+        if (is.null(D)) {
+            D <- floor(min(sqrt(n), p))
         }
 
         # start loops
@@ -324,11 +346,11 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
         for (t in 1:(iteration + 1)) {
             output <- foreach(i = 1:B1, .combine = "rbind", .packages = "MASS") %dopar% {
                 S <- sapply(1:B2, function(j) {
-                  S.size <- sample(1:dmax, 1)
-                  c(sample(1:p, size = min(S.size, length(dist[dist != 0])), prob = dist), rep(NA, dmax - min(S.size, length(dist[dist !=
+                  S.size <- sample(1:D, 1)
+                  c(sample(1:p, size = min(S.size, length(dist[dist != 0])), prob = dist), rep(NA, D - min(S.size, length(dist[dist !=
                     0]))))
                 })
-                RaSubset(xtrain = xtrain, ytrain = ytrain, xval = xval, yval = yval, B2 = B2, S = S, base = base, k = k,
+                RaSubset(xtrain = xtrain, ytrain = ytrain, xval = xval, yval = yval, B2 = B2, S = S, base = base, k = k, kl.k = kl.k,
                   criterion = criterion, cv = cv, ...)
             }
 
@@ -340,6 +362,7 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
             }
 
             dist <- s/sum(s)
+            dist[dist < C0/log(p)] <- C0/p
             ytrain.pred <- data.frame(matrix(unlist(output[, 2]), ncol = B1))
         }
 
@@ -348,8 +371,8 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
 
     if (base == "tree") {
         # estimate parameters
-        if (is.null(dmax)) {
-            dmax <- floor(min(sqrt(n), p))
+        if (is.null(D)) {
+            D <- floor(min(sqrt(n), p))
         }
 
         # start loops
@@ -357,8 +380,8 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
         for (t in 1:(iteration + 1)) {
             output <- foreach(i = 1:B1, .combine = "rbind", .packages = "MASS") %dopar% {
                 S <- sapply(1:B2, function(j) {
-                  S.size <- sample(1:dmax, 1)
-                  c(sample(1:p, size = min(S.size, length(dist[dist != 0])), prob = dist), rep(NA, dmax - min(S.size, length(dist[dist !=
+                  S.size <- sample(1:D, 1)
+                  c(sample(1:p, size = min(S.size, length(dist[dist != 0])), prob = dist), rep(NA, D - min(S.size, length(dist[dist !=
                     0]))))
                 })
                 RaSubset(xtrain = xtrain, ytrain = ytrain, xval = xval, yval = yval, B2 = B2, S = S, base = base, k = k,
@@ -373,6 +396,7 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
             }
 
             dist <- s/sum(s)
+            dist[dist < C0/log(p)] <- C0/p
             ytrain.pred <- data.frame(matrix(unlist(output[, 2]), ncol = B1))
         }
 
@@ -381,8 +405,8 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
 
     if (base == "logistic" || base == "svm" || base == "randomforest") {
         # estimate parameters
-        if (is.null(dmax)) {
-            dmax <- floor(min(sqrt(n), p))
+        if (is.null(D)) {
+            D <- floor(min(sqrt(n), p))
         }
 
         # start loops
@@ -390,11 +414,11 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
         for (t in 1:(iteration + 1)) {
             output <- foreach(i = 1:B1, .combine = "rbind", .packages = "MASS") %dopar% {
                 S <- sapply(1:B2, function(j) {
-                  S.size <- sample(1:dmax, 1)
-                  c(sample(1:p, size = min(S.size, length(dist[dist != 0])), prob = dist), rep(NA, dmax - min(S.size, length(dist[dist !=
+                  S.size <- sample(1:D, 1)
+                  c(sample(1:p, size = min(S.size, length(dist[dist != 0])), prob = dist), rep(NA, D - min(S.size, length(dist[dist !=
                     0]))))
                 })
-                RaSubset(xtrain = xtrain, ytrain = ytrain, xval = xval, yval = yval, B2 = B2, S = S, base = base, k = k,
+                RaSubset(xtrain = xtrain, ytrain = ytrain, xval = xval, yval = yval, B2 = B2, S = S, base = base, k = k, kl.k = kl.k,
                   criterion = criterion, cv = cv, ...)
             }
 
@@ -406,6 +430,7 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
             }
 
             dist <- s/sum(s)
+            dist[dist < C0/log(p)] <- C0/p
             ytrain.pred <- data.frame(matrix(unlist(output[, 2]), ncol = B1))
         }
 
@@ -415,8 +440,8 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
 
     if (base == "gamma") {
         # estimate parameters
-        if (is.null(dmax)) {
-            dmax <- floor(min(sqrt(n), p))
+        if (is.null(D)) {
+            D <- floor(min(sqrt(n), p))
         }
 
         lfun <- function(t, v) {
@@ -440,12 +465,12 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
         for (t in 1:(iteration + 1)) {
             output <- foreach(i = 1:B1, .combine = "rbind", .packages = "MASS") %dopar% {
                 S <- sapply(1:B2, function(j) {
-                  S.size <- sample(1:dmax, 1)
-                  c(sample(1:p, size = min(S.size, length(dist[dist != 0])), prob = dist), rep(NA, dmax - min(S.size, length(dist[dist !=
+                  S.size <- sample(1:D, 1)
+                  c(sample(1:p, size = min(S.size, length(dist[dist != 0])), prob = dist), rep(NA, D - min(S.size, length(dist[dist !=
                     0]))))
                 })
                 RaSubset(xtrain = xtrain, ytrain = ytrain, xval = xval, yval = yval, B2 = B2, S = S, base = base, k = k,
-                  criterion = criterion, cv = cv, t0.mle = t0.mle, t1.mle = t1.mle, ...)
+                  criterion = criterion, cv = cv, t0.mle = t0.mle, t1.mle = t1.mle, kl.k = kl.k, ...)
             }
 
             subspace <- output[, 3]
@@ -456,6 +481,7 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
             }
 
             dist <- s/sum(s)
+            dist[dist < C0/log(p)] <- C0/p
             ytrain.pred <- data.frame(matrix(unlist(output[, 2]), ncol = B1))
         }
 
@@ -488,7 +514,7 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 100, B2 = 500, d
 
     stopImplicitCluster()
     obj <- list(marginal = c(`class 0` = p0, `class 1` = 1 - p0), base = base, criterion = criterion, B1 = B1, B2 = B2,
-                iteration = iteration, fit.list = fit.list, cutoff = cutoff, subspace = subspace, ranking = rk, scale = scale.parameters)
+                iteration = iteration, fit.list = fit.list, cutoff = cutoff, subspace = subspace, ranking = rk, scale = scale.parameters, C0 = C0)
     class(obj) <- "RaSE"
 
     return(obj)
