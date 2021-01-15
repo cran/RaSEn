@@ -20,12 +20,9 @@ from a fitted \code{'RaSE'} object.
 }
 \examples{
 set.seed(0, kind = "L'Ecuyer-CMRG")
-train.data <- RaModel(1, n = 100, p = 50)
-test.data <- RaModel(1, n = 100, p = 50)
+train.data <- RaModel("classification", 1, n = 100, p = 50)
 xtrain <- train.data$x
 ytrain <- train.data$y
-xtest <- test.data$x
-ytest <- test.data$y
 
 # test RaSE classifier with LDA base classifier
 fit <- Rase(xtrain, ytrain, B1 = 50, B2 = 50, iteration = 0, cutoff = TRUE,

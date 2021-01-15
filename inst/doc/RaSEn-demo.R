@@ -9,8 +9,8 @@ library(RaSEn)
 
 ## -----------------------------------------------------------------------------
 set.seed(0, kind = "L'Ecuyer-CMRG")
-train.data <- RaModel(1, n = 100, p = 50)
-test.data <- RaModel(1, n = 100, p = 50)
+train.data <- RaModel("classification", 1, n = 100, p = 50)
+test.data <- RaModel("classification", 1, n = 100, p = 50)
 xtrain <- train.data$x
 ytrain <- train.data$y
 xtest <- test.data$x
@@ -48,10 +48,19 @@ plot_logistic <- RaPlot(fit.logistic)
 
 grid.arrange(plot_lda, plot_qda, plot_knn, plot_logistic, ncol=2)
 
-## ---- tidy=TRUE, tidy.opts=list(width.cutoff=70), eval=FALSE------------------
-#  library(gridExtra)
-#  fit.lda <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 1, base = "lda", cores = 2, criterion = "ric")
-#  fit.qda <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 1, base = "qda", cores = 2, criterion = "ric")
-#  fit.knn <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 1, base = "knn", cores = 2, criterion = "loo")
-#  fit.logistic <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 1, base = "logistic", cores = 2, criterion = "ric")
+
+## -----------------------------------------------------------------------------
+train.data <- RaModel("screening", 1, n = 100, p = 100)
+xtrain <- train.data$x
+ytrain <- train.data$y
+
+## ---- tidy=TRUE, tidy.opts=list(width.cutoff=70)------------------------------
+fit.bic <- RaScreen(xtrain, ytrain, B1 = 100, B2 = 100, model = "lm", criterion = "bic", cores = 2, iteration = 1)
+
+## ---- tidy=TRUE, tidy.opts=list(width.cutoff=70)------------------------------
+RaRank(fit.bic, selected.num = "n/logn", iteration = 0)
+RaRank(fit.bic, selected.num = "n/logn", iteration = 1)
+
+## ---- tidy=TRUE, tidy.opts=list(width.cutoff=70)------------------------------
+RaRank(fit.bic, selected.num = "n-1", iteration = 1)
 

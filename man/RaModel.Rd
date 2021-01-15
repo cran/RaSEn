@@ -2,40 +2,51 @@
 % Please edit documentation in R/RaModel.R
 \name{RaModel}
 \alias{RaModel}
-\title{Generate data \eqn{(x, y)} from 6 models.}
+\title{Generate data \eqn{(x, y)} from various models in two papers.}
 \usage{
-RaModel(Model.No, n, p, p0 = 1/2, sparse = TRUE)
+RaModel(model.type, model.no, n, p, p0 = 1/2, sparse = TRUE)
 }
 \arguments{
-\item{Model.No}{model number, which can be 1, 2, 3, 4.}
+\item{model.type}{indicator of the paper covering the model, which can be 'classification' (Tian, Y. and Feng, Y., 2020) or 'screening' (Tian, Y. and Feng, Y., 2021).}
+
+\item{model.no}{model number. It can be 1-4 when \code{model.type} = 'classification' and 1-6 when \code{model.type} = 'screening', respectively.}
 
 \item{n}{sample size}
 
 \item{p}{data dimension}
 
-\item{p0}{marginal probability of class 0. Default = 0.5. Only available when Model.No = 1, 2, 3.}
+\item{p0}{marginal probability of class 0. Default = 0.5. Only used when \code{model.type} = 'classification' and \code{model.no} = 1, 2, 3.}
 
-\item{sparse}{a logistic object indicating model sparsity. Default = TRUE. Only available when Model.No = 1, 4. When it equals to FALSE, the data is generated from model 1' or 4' as described in Tian, Y. and Feng, Y., 2020.}
+\item{sparse}{a logistic object indicating model sparsity. Default = TRUE. Only used when \code{model.type} = 'classification' and \code{model.no} = 1, 4.}
 }
 \value{
 \item{x}{n * p matrix. n observations and p features.}
-\item{y}{n 0/1 observations.}
+\item{y}{n responses.}
 }
 \description{
-\code{RaModel} generates data from 6 models described in Tian, Y. and Feng, Y., 2020.
+\code{RaModel} generates data from 4 models described in Tian, Y. and Feng, Y., 2020 and 6 models described in Tian, Y. and Feng, Y., 2021.
 }
 \note{
-Models 1, 2 and 4 require \eqn{p \ge 5}. Models 1' and 3 requires \eqn{p \ge 50}. Model 4' requires \eqn{p \ge 30}.
+When \code{model.type} = 'classification' and \code{sparse} = TRUE, models 1, 2, 4 require \eqn{p \ge 5} and model 3 requires
+ \eqn{p \ge 50}. When \code{model.type} = 'classification' and \code{sparse} = FALSE, models 1 and 4 require \eqn{p \ge 50} and
+ \eqn{p \ge 30}, respectively. When \code{model.type} = 'screening', models 1, 4 and 5 require \eqn{p \ge 4}. Model 2 require \eqn{p \ge 5} and model 3 require \eqn{p \ge 22}. Model 5 requires \eqn{p \ge 2}.
 }
 \examples{
-train.data <- RaModel(1, n = 100, p = 50)
+train.data <- RaModel("classification", 1, n = 100, p = 50)
 xtrain <- train.data$x
 ytrain <- train.data$y
 
+\dontrun{
+train.data <- RaModel("screening", 2, n = 100, p = 50)
+xtrain <- train.data$x
+ytrain <- train.data$y
+}
 }
 \references{
-Tian, Y. and Feng, Y., 2020. RaSE: Random subspace ensemble classification. arXiv preprint arXiv:2006.08855.
+Tian, Y. and Feng, Y., 2021. RaSE: A Variable Screening Framework via Random Subspace Ensembles.
+
+Tian, Y. and Feng, Y., 2021. RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22, to appear.
 }
 \seealso{
-\code{\link{Rase}}
+\code{\link{Rase}}, \code{\link{RaScreen}}.
 }

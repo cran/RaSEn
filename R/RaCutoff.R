@@ -1,7 +1,7 @@
 RaCutoff <- function(ytrain.pred, ytrain, p0) {
     n <- length(ytrain)
-    vote0 <- rowMeans(ytrain.pred[ytrain == 0, ], na.rm = TRUE)
-    vote1 <- rowMeans(ytrain.pred[ytrain == 1, ], na.rm = TRUE)
+    vote0 <- rowMeans(ytrain.pred[ytrain == 0, , drop = FALSE], na.rm = TRUE)
+    vote1 <- rowMeans(ytrain.pred[ytrain == 1, , drop = FALSE], na.rm = TRUE)
     errecdfm <- function(x) {
         (1 - p0) * ecdf(vote1)(x) + p0 * (1 - ecdf(vote0)(x))
     }

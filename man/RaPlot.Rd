@@ -31,7 +31,7 @@ This function plots the feature ranking results from a fitted \code{'RaSE'} obje
 }
 \examples{
 set.seed(0, kind = "L'Ecuyer-CMRG")
-train.data <- RaModel(1, n = 100, p = 50)
+train.data <- RaModel("classification", 1, n = 100, p = 50)
 xtrain <- train.data$x
 ytrain <- train.data$y
 

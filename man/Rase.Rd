@@ -13,7 +13,8 @@ Rase(
   B2 = 500,
   D = NULL,
   dist = NULL,
-  base = c("lda", "qda", "knn", "logistic", "tree", "svm", "randomforest", "gamma"),
+  base = c("lda", "qda", "knn", "logistic", "tree", "svm", "randomforest", "gamma",
+    "NULL"),
   criterion = NULL,
   ranking = TRUE,
   k = c(3, 5, 7, 9, 11),
@@ -21,7 +22,7 @@ Rase(
   seed = NULL,
   iteration = 0,
   cutoff = TRUE,
-  cv = 10,
+  cv = 5,
   scale = FALSE,
   C0 = 0.1,
   kl.k = NULL,
@@ -41,7 +42,7 @@ Rase(
 
 \item{B2}{the number of subspace candidates generated for each weak learner. Default = 500.}
 
-\item{D}{the maximal subspace size when generating random subspaces from the uniform distribution. Default = \code{NULL}, which is \eqn{min(\sqrt n0, \sqrt n1, p)} when \code{base} = 'lda' and is \eqn{min(\sqrt n, p)} otherwise.}
+\item{D}{the maximal subspace size when generating random subspaces. Default = \code{NULL}, which is \eqn{min(\sqrt n0, \sqrt n1, p)} when \code{base} = 'qda' and is \eqn{min(\sqrt n, p)} otherwise.}
 
 \item{dist}{the distribution for features when generating random subspaces. Default = \code{NULL}, which represents the uniform distribution. First generate an integer \eqn{d} from \eqn{1,...,D} uniformly, then uniformly generate a subset with cardinality \eqn{d}.}
 
@@ -60,19 +61,28 @@ Rase(
 \item{criterion}{the criterion to choose the best subspace for each weak learner. Default = 'ric' when \code{base} = 'lda', 'qda', 'gamma'; default = 'ebic' and set \code{gam} = 0 when \code{base} = 'logistic'; default = 'loo' when \code{base} = 'knn'; default = 'training' when \code{base} = 'tree', 'svm', 'randomforest'.
 \itemize{
 \item ric: minimizing ratio information criterion with parametric estimation (Tian, Y. and Feng, Y., 2020). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
-\item nric: minimizing ratio information criterion with non-parametric estimation (Tian, Y. and Feng, Y., 2020; Wang, Q., Kulkarni, S.R. and Verdú, S., 2009). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
+\item nric: minimizing ratio information criterion with non-parametric estimation (Tian, Y. and Feng, Y., 2020). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
 \item training: minimizing training error. Not available when \code{base} = 'knn'.
 \item loo: minimizing leave-one-out error. Only available when  \code{base} = 'knn'.
 \item validation: minimizing validation error based on the validation data. Available for all base classifiers.
-\item cv: minimizing k-fold cross-validation error. k equals to the value of \code{cv}. Default = 10. Not available when \code{base} = 'gamma'.
-\item ebic: minimizing extended Bayesian information criterion (Chen, J. and Chen, Z., 2008; 2012). Need to assign value for \code{gam}. When \code{gam} = 0, it denotes the classical BIC. Available when \code{base} = 'lda', 'qda' or 'logistic'.
+\item cv: minimizing k-fold cross-validation error. k equals to the value of \code{cv}. Default = 5. Not available when \code{base} = 'gamma'.
+\item aic: minimizing Akaike information criterion (Akaike, H., 1973). Available when \code{base} = 'lda' or 'logistic'.
+
+AIC = -2 * log-likelihood + |S| * 2.
+
+\item bic: minimizing Bayesian information criterion (Schwarz, G., 1978). Available when \code{base} = 'lda' or 'logistic'.
+
+BIC = -2 * log-likelihood + |S| * log(n).
+
+\item ebic: minimizing extended Bayesian information criterion (Chen, J. and Chen, Z., 2008; 2012). Need to assign value for \code{gam}. When \code{gam} = 0, it denotes the classical BIC. Available when \code{base} = 'lda' or 'logistic'.
 
 EBIC = -2 * log-likelihood + |S| * log(n) + 2 * |S| * gam * log(p).
+
 }}
 
 \item{ranking}{whether the function outputs the selected percentage of each feature in B1 subspaces. Logistic, default = TRUE.}
 
-\item{k}{the number of nearest neightbors considered when \code{base} = 'knn'. Only useful when \code{base} = 'knn'.}
+\item{k}{the number of nearest neightbors considered when \code{base} = 'knn'. Only useful when \code{base} = 'knn'. Default = (3, 5, 7, 9, 11).}
 
 \item{cores}{the number of cores used for parallel computing. Default = 1.}
 
@@ -82,13 +92,13 @@ EBIC = -2 * log-likelihood + |S| * log(n) + 2 * |S| * gam * log(p).
 
 \item{cutoff}{whether to use the empirically optimal threshold. Logistic, default = TRUE. If it is FALSE, the threshold will be set as 0.5.}
 
-\item{cv}{the number of cross-validations used. Default = 10. Only useful when \code{criterion} = 'cv'.}
+\item{cv}{the number of cross-validations used. Default = 5. Only useful when \code{criterion} = 'cv'.}
 
 \item{scale}{whether to normalize the data. Logistic, default = FALSE.}
 
-\item{C0}{the threshold used to adjust the sampling probabilities of features when \code{iteration} > 0. Default = 0.1.}
+\item{C0}{a positive constant used when \code{iteration} > 1. See Tian, Y. and Feng, Y., 2020 for details.}
 
-\item{kl.k}{the number of nearest neighbors used to estimate KL divergences when \code{criterion} = 'nric'. 2-dimensional vector. Default = \code{NULL}, in which case it will be set as \eqn{\sqrt n0, \sqrt n1}.}
+\item{kl.k}{the number of nearest neighbors used to estimate RIC in a non-parametric way. Default = \code{NULL}, which means that \eqn{k0 = floor(\sqrt n0)} and \eqn{k1 = floor(\sqrt n1)}. See Tian, Y. and Feng, Y., 2020 for details. Only available when \code{criterion} = 'nric'.}
 
 \item{...}{additional arguments.}
 }
@@ -99,21 +109,21 @@ An object with S3 class \code{'RaSE'}.
 \item{criterion}{the criterion to choose the best subspace for each weak learner.}
 \item{B1}{the number of weak learners.}
 \item{B2}{the number of subspace candidates generated for each weak learner.}
+\item{D}{the maximal subspace size when generating random subspaces.}
 \item{iteration}{the number of iterations.}
 \item{fit.list}{sequence of B1 fitted base classifiers.}
 \item{cutoff}{the empirically optimal threshold.}
 \item{subspace}{sequence of subspaces correponding to B1 weak learners.}
 \item{ranking}{the selected percentage of each feature in B1 subspaces.}
 \item{scale}{a list of scaling parameters, including the scaling center and the scale parameter for each feature. Equals to \code{NULL} when the data is not scaled in \code{RaSE} model fitting.}
-\item{C0}{the threshold used to adjust the sampling probabilities of features when \code{iteration} > 0.}
 }
 \description{
-\code{Rase} is a novel model-free ensemble classification framework to solve the sparse classification problem. In RaSE algorithm, for each of the B1 weak learners, B2 random subspaces are generated and the optimal one is chosen to train the model on the basis of some criterion.
+\code{RaSE} is a general ensemble classification framework to solve the sparse classification problem. In RaSE algorithm, for each of the B1 weak learners, B2 random subspaces are generated and the optimal one is chosen to train the model on the basis of some criterion.
 }
 \examples{
 set.seed(0, kind = "L'Ecuyer-CMRG")
-train.data <- RaModel(1, n = 100, p = 50)
-test.data <- RaModel(1, n = 100, p = 50)
+train.data <- RaModel("classification", 1, n = 100, p = 50)
+test.data <- RaModel("classification", 1, n = 100, p = 50)
 xtrain <- train.data$x
 ytrain <- train.data$y
 xtest <- test.data$x
@@ -157,14 +167,16 @@ mean(predict(fit, xtest) != ytest)
 }
 }
 \references{
-Tian, Y. and Feng, Y., 2020. RaSE: Random subspace ensemble classification. arXiv preprint arXiv:2006.08855.
+Tian, Y. and Feng, Y., 2021. RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22, to appear.
 
 Chen, J. and Chen, Z., 2008. Extended Bayesian information criteria for model selection with large model spaces. Biometrika, 95(3), pp.759-771.
 
 Chen, J. and Chen, Z., 2012. Extended BIC for small-n-large-P sparse GLM. Statistica Sinica, pp.555-574.
 
-Wang, Q., Kulkarni, S.R. and Verdú, S., 2009. Divergence estimation for multidimensional densities via $ k $-nearest-neighbor distances. IEEE Transactions on Information Theory, 55(5), pp.2392-2405.#' @examples
+Akaike, H., 1973. Information theory and an extension of the maximum likelihood principle. In 2nd International Symposium on Information Theory, 1973 (pp. 267-281). Akademiai Kaido.
+
+Schwarz, G., 1978. Estimating the dimension of a model. The annals of statistics, 6(2), pp.461-464.
 }
 \seealso{
-\code{\link{predict.RaSE}}, \code{\link{RaModel}}, \code{\link{print.RaSE}}, \code{\link{RaPlot}}.
+\code{\link{predict.RaSE}}, \code{\link{RaModel}}, \code{\link{print.RaSE}}, \code{\link{RaPlot}}, \code{\link{RaScreen}}.
 }
