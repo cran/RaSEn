@@ -60,8 +60,8 @@ Rase(
 
 \item{criterion}{the criterion to choose the best subspace for each weak learner. Default = 'ric' when \code{base} = 'lda', 'qda', 'gamma'; default = 'ebic' and set \code{gam} = 0 when \code{base} = 'logistic'; default = 'loo' when \code{base} = 'knn'; default = 'training' when \code{base} = 'tree', 'svm', 'randomforest'.
 \itemize{
-\item ric: minimizing ratio information criterion with parametric estimation (Tian, Y. and Feng, Y., 2020). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
-\item nric: minimizing ratio information criterion with non-parametric estimation (Tian, Y. and Feng, Y., 2020). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
+\item ric: minimizing ratio information criterion with parametric estimation (Tian, Y. and Feng, Y., 2021(b)). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
+\item nric: minimizing ratio information criterion with non-parametric estimation (Tian, Y. and Feng, Y., 2021(b)). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
 \item training: minimizing training error. Not available when \code{base} = 'knn'.
 \item loo: minimizing leave-one-out error. Only available when  \code{base} = 'knn'.
 \item validation: minimizing validation error based on the validation data. Available for all base classifiers.
@@ -96,9 +96,9 @@ EBIC = -2 * log-likelihood + |S| * log(n) + 2 * |S| * gam * log(p).
 
 \item{scale}{whether to normalize the data. Logistic, default = FALSE.}
 
-\item{C0}{a positive constant used when \code{iteration} > 1. See Tian, Y. and Feng, Y., 2020 for details.}
+\item{C0}{a positive constant used when \code{iteration} > 1. See Tian, Y. and Feng, Y., 2021(b) for details.}
 
-\item{kl.k}{the number of nearest neighbors used to estimate RIC in a non-parametric way. Default = \code{NULL}, which means that \eqn{k0 = floor(\sqrt n0)} and \eqn{k1 = floor(\sqrt n1)}. See Tian, Y. and Feng, Y., 2020 for details. Only available when \code{criterion} = 'nric'.}
+\item{kl.k}{the number of nearest neighbors used to estimate RIC in a non-parametric way. Default = \code{NULL}, which means that \eqn{k0 = floor(\sqrt n0)} and \eqn{k1 = floor(\sqrt n1)}. See Tian, Y. and Feng, Y., 2021(b) for details. Only available when \code{criterion} = 'nric'.}
 
 \item{...}{additional arguments.}
 }
@@ -167,7 +167,9 @@ mean(predict(fit, xtest) != ytest)
 }
 }
 \references{
-Tian, Y. and Feng, Y., 2021. RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22, to appear.
+Tian, Y. and Feng, Y., 2021(b). RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
+
+Tian, Y. and Feng, Y., 2021(a). RaSE: A Variable Screening Framework via Random Subspace Ensembles. arXiv preprint arXiv:2102.03892.
 
 Chen, J. and Chen, Z., 2008. Extended Bayesian information criteria for model selection with large model spaces. Biometrika, 95(3), pp.759-771.
 

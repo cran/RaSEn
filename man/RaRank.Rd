@@ -33,7 +33,6 @@ Selected variables (indexes).
 Rank the features by selected percentages provided by the output from \code{RaScreen}.
 }
 \examples{
-
 \dontrun{
 set.seed(0, kind = "L'Ecuyer-CMRG")
 train.data <- RaModel("screening", 1, n = 100, p = 100)
@@ -44,10 +43,10 @@ ytrain <- train.data$y
 fit <- RaScreen(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, model = 'lm',
 cores = 2, criterion = 'bic')
 
-# Select n/logn variables
+# Select floor(n/logn) variables
 RaRank(fit, selected.num = "n/logn")
 }
 }
 \references{
-Tian, Y. and Feng, Y., 2021. RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22, to appear.
+Tian, Y. and Feng, Y., 2021(a). RaSE: A Variable Screening Framework via Random Subspace Ensembles. arXiv preprint arXiv:2102.03892.
 }

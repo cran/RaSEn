@@ -48,6 +48,8 @@
 #' @importFrom formatR tidy_eval
 #' @importFrom FNN KL.divergence
 #' @importFrom ranger ranger
+#' @importFrom KernelKnn KernelKnn
+#' @importFrom utils data
 #' @param xtrain n * p observation matrix. n observations, p features.
 #' @param ytrain n 0/1 observatons.
 #' @param xval observation matrix for validation. Default = \code{NULL}. Useful only when \code{criterion} = 'validation'.
@@ -69,8 +71,8 @@
 #' }
 #' @param criterion the criterion to choose the best subspace for each weak learner. Default = 'ric' when \code{base} = 'lda', 'qda', 'gamma'; default = 'ebic' and set \code{gam} = 0 when \code{base} = 'logistic'; default = 'loo' when \code{base} = 'knn'; default = 'training' when \code{base} = 'tree', 'svm', 'randomforest'.
 #' \itemize{
-#' \item ric: minimizing ratio information criterion with parametric estimation (Tian, Y. and Feng, Y., 2020). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
-#' \item nric: minimizing ratio information criterion with non-parametric estimation (Tian, Y. and Feng, Y., 2020). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
+#' \item ric: minimizing ratio information criterion with parametric estimation (Tian, Y. and Feng, Y., 2021(b)). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
+#' \item nric: minimizing ratio information criterion with non-parametric estimation (Tian, Y. and Feng, Y., 2021(b)). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
 #' \item training: minimizing training error. Not available when \code{base} = 'knn'.
 #' \item loo: minimizing leave-one-out error. Only available when  \code{base} = 'knn'.
 #' \item validation: minimizing validation error based on the validation data. Available for all base classifiers.
@@ -96,8 +98,8 @@
 #' @param cutoff whether to use the empirically optimal threshold. Logistic, default = TRUE. If it is FALSE, the threshold will be set as 0.5.
 #' @param cv the number of cross-validations used. Default = 5. Only useful when \code{criterion} = 'cv'.
 #' @param scale whether to normalize the data. Logistic, default = FALSE.
-#' @param C0 a positive constant used when \code{iteration} > 1. See Tian, Y. and Feng, Y., 2020 for details.
-#' @param kl.k the number of nearest neighbors used to estimate RIC in a non-parametric way. Default = \code{NULL}, which means that \eqn{k0 = floor(\sqrt n0)} and \eqn{k1 = floor(\sqrt n1)}. See Tian, Y. and Feng, Y., 2020 for details. Only available when \code{criterion} = 'nric'.
+#' @param C0 a positive constant used when \code{iteration} > 1. See Tian, Y. and Feng, Y., 2021(b) for details.
+#' @param kl.k the number of nearest neighbors used to estimate RIC in a non-parametric way. Default = \code{NULL}, which means that \eqn{k0 = floor(\sqrt n0)} and \eqn{k1 = floor(\sqrt n1)}. See Tian, Y. and Feng, Y., 2021(b) for details. Only available when \code{criterion} = 'nric'.
 #' @param ... additional arguments.
 #' @return An object with S3 class \code{'RaSE'}.
 #' \item{marginal}{the marginal probability for each class.}
@@ -114,7 +116,9 @@
 #' \item{scale}{a list of scaling parameters, including the scaling center and the scale parameter for each feature. Equals to \code{NULL} when the data is not scaled in \code{RaSE} model fitting.}
 #' @seealso \code{\link{predict.RaSE}}, \code{\link{RaModel}}, \code{\link{print.RaSE}}, \code{\link{RaPlot}}, \code{\link{RaScreen}}.
 #' @references
-#' Tian, Y. and Feng, Y., 2021. RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22, to appear.
+#' Tian, Y. and Feng, Y., 2021(b). RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
+#'
+#' Tian, Y. and Feng, Y., 2021(a). RaSE: A Variable Screening Framework via Random Subspace Ensembles. arXiv preprint arXiv:2102.03892.
 #'
 #' Chen, J. and Chen, Z., 2008. Extended Bayesian information criteria for model selection with large model spaces. Biometrika, 95(3), pp.759-771.
 #'
@@ -173,6 +177,7 @@
 Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 200, B2 = 500, D = NULL, dist = NULL, base = c("lda",
     "qda", "knn", "logistic", "tree", "svm", "randomforest", "gamma", "NULL"), criterion = NULL, ranking = TRUE, k = c(3, 5, 7, 9, 11), cores = 1,
     seed = NULL, iteration = 0, cutoff = TRUE, cv = 5, scale = FALSE, C0 = 0.1, kl.k = NULL, ...) {
+
 
     if (!is.null(seed)) {
         set.seed(seed, kind = "L'Ecuyer-CMRG")

@@ -43,6 +43,9 @@ cores = 2, criterion = 'ric')
 RaPlot(fit)
 
 }
+\references{
+Tian, Y. and Feng, Y., 2021. RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
+}
 \seealso{
 \code{\link{Rase}}.
 }

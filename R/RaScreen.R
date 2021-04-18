@@ -7,8 +7,8 @@
 #' @param xval observation matrix for validation. Default = \code{NULL}. Useful only when \code{criterion} = 'validation'.
 #' @param yval 0/1 observation for validation. Default = \code{NULL}. Useful only when \code{criterion} = 'validation'.
 #' @param B1 the number of weak learners. Default = 200.
-#' @param B2 the number of subspace candidates generated for each weak learner. Default = \eqn{floor(p^{1.1})}.
-#' @param D the maximal subspace size when generating random subspaces. Default = \code{NULL}. It means that \code{D} = \eqn{min(\sqrt n0, \sqrt n1, p)} when \code{model} = 'qda', \code{D} = \eqn{min(n^{0.49}, p)} when \code{model} = 'lm', and \code{D} = \eqn{min(\sqrt n, p)} otherwise.
+#' @param B2 the number of subspace candidates generated for each weak learner. Default = \code{NULL}, which will set B2 = \eqn{20*floor(p/D)}.
+#' @param D the maximal subspace size when generating random subspaces. Default = \code{NULL}. It means that \code{D} = \eqn{min(\sqrt n0, \sqrt n1, p)} when \code{model} = 'qda', and \code{D} = \eqn{min(\sqrt n, p)} otherwise.
 #' @param dist the distribution for features when generating random subspaces. Default = \code{NULL}, which represents the hierarchical uniform distribution. First generate an integer \eqn{d} from \eqn{1,...,D} uniformly, then uniformly generate a subset with cardinality \eqn{d}.
 #' @param model the model to use. Default = 'lda' when \code{classification} = TRUE and 'lm' when \code{classification} = FALSE.
 #' \itemize{
@@ -20,7 +20,9 @@
 #' \item tree: decision tree. \code{\link[rpart]{rpart}} in \code{rpart} package. Only available for classification.
 #' \item svm: support vector machine. If kernel is not identified by user, it will use RBF kernel. \code{\link[e1071]{svm}} in \code{e1071} package.
 #' \item randomforest: random forest. \code{\link[randomForest]{randomForest}} in \code{randomForest} package and \code{\link[ranger]{ranger}} in \code{ranger} package.
+#' \item kernelknn: k-nearest neighbor with different kernels. It relies on function \code{\link[KernelKnn]{KernelKnn}} in \code{KernelKnn} package. Arguments \code{method} and \code{weights_function} are required. Different choices of multiple arguments are available. See documentation of function \code{\link[KernelKnn]{KernelKnn}} for details.
 #' }
+#'
 #' @param criterion the criterion to choose the best subspace. Default = 'ric' when \code{model} = 'lda', 'qda'; default = 'bic' when \code{model} = 'lm' or 'logistic'; default = 'loo' when \code{model} = 'knn'; default = 'cv' and set \code{cv} = 5 when \code{model} = 'tree', 'svm', 'randomforest'.
 #' \itemize{
 #' \item ric: minimizing ratio information criterion (RIC) with parametric estimation (Tian, Y. and Feng, Y., 2020). Available for binary classification and \code{model} = 'lda', 'qda', or 'logistic'.
@@ -41,7 +43,7 @@
 #'
 #' eBIC = -2 * log-likelihood + |S| * log(n) + 2 * |S| * gam * log(p).
 #' }
-#' @param k the number of nearest neightbors considered when \code{model} = 'knn'. Only useful when \code{model} = 'knn'. Default = 5.
+#' @param k the number of nearest neightbors considered when \code{model} = 'knn' or 'kernel'. Only useful when \code{model} = 'knn' or 'kernel'. \code{k} is required to be a positive integer. Default = 5.
 #' @param cores the number of cores used for parallel computing. Default = 1.
 #' @param seed the random seed assigned at the start of the algorithm, which can be a real number or \code{NULL}. Default = \code{NULL}, in which case no random seed will be set.
 #' @param iteration the number of iterations. Default = 0.
@@ -64,9 +66,9 @@
 #' \item{scale}{a list of scaling parameters, including the scaling center and the scale parameter for each feature. Equals to \code{NULL} when the data is not scaled by \code{RaScreen}.}
 #' @seealso \code{\link{Rase}}, \code{\link{RaRank}}.
 #' @references
-#' Tian, Y. and Feng, Y., 2021. RaSE: A Variable Screening Framework via Random Subspace Ensembles.
+#' Tian, Y. and Feng, Y., 2021(a). RaSE: A Variable Screening Framework via Random Subspace Ensembles. arXiv preprint arXiv:2102.03892.
 #'
-#' Tian, Y. and Feng, Y., 2021. RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22, to appear.
+#' Tian, Y. and Feng, Y., 2021(b). RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
 #'
 #' Chen, J. and Chen, Z., 2008. Extended Bayesian information criteria for model selection with large model spaces. Biometrika, 95(3), pp.759-771.
 #'
@@ -118,7 +120,7 @@
 #' }
 
 
-RaScreen <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 200, B2 = floor(ncol(xtrain)^1.1), D = NULL, dist = NULL, model = NULL, criterion = NULL, k = 5, cores = 1,
+RaScreen <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 200, B2 = NULL, D = NULL, dist = NULL, model = NULL, criterion = NULL, k = 5, cores = 1,
                          seed = NULL, iteration = 0, cv = 5, scale = FALSE, C0 = 0.1, kl.k = NULL, classification = NULL, ...) {
   if (!is.null(seed)) {
     set.seed(seed, kind = "L'Ecuyer-CMRG")
@@ -132,25 +134,25 @@ RaScreen <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 200, B2 = fl
     model <- ifelse(classification, "lda", "lm")
   }
 
+
+  if (classification) {
+    n0 <- sum(ytrain == 0)
+    n1 <- sum(ytrain == 1)
+  }
+
   if (is.null(criterion)) {
     if (model == "lda" || model == "qda" || model == "gamma") {
       criterion <- "ric"
     } else if (model == "logistic") {
       criterion <- "bic"
     } else if (model == "knn") {
-      criterion <- "loo"
+      criterion <- ifelse(classification, "loo", "cv")
     } else if  (model == "lm"){
       criterion <- "bic"
     } else {
       criterion <- "cv"
       cv <- 5
     }
-  }
-
-
-  if (classification) {
-    n0 <- sum(ytrain == 0)
-    n1 <- sum(ytrain == 1)
   }
 
   if(classification && is.null(kl.k)) {
@@ -176,8 +178,13 @@ RaScreen <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 200, B2 = fl
 
   if (model == "lm") {
     if (is.null(D)) {
-      D <- floor(n^(0.49))
+      D <- floor(min(sqrt(n), p))
     }
+
+    if (is.null(B2)) {
+      B2 <- 20*floor(p/D)
+    }
+
     XX <- t(xtrain) %*% xtrain
     XY <- t(xtrain) %*% ytrain
     if (is.null(dist)) {
@@ -232,7 +239,11 @@ RaScreen <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 200, B2 = fl
     }
 
     if (is.null(D)) {
-      D <- floor(min(n^(0.49), length(sig.ind)))
+      D <- floor(min(sqrt(n), length(sig.ind)))
+    }
+
+    if (is.null(B2)) {
+      B2 <- 20*floor(p/D)
     }
 
     # estimate parameters
@@ -340,6 +351,10 @@ RaScreen <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 200, B2 = fl
       D <- floor(min(sqrt(n0), sqrt(n1), length(sig.ind)))
     }
 
+    if (is.null(B2)) {
+      B2 <- 20*floor(p/D)
+    }
+
     if (criterion == "ric" && p <= 7000) {
       Sigma0.mle <- (n0 - 1)/n0 * cov(xtrain[ytrain == 0, , drop = F])
       Sigma1.mle <- (n1 - 1)/n1 * cov(xtrain[ytrain == 1, , drop = F])
@@ -436,10 +451,14 @@ RaScreen <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 200, B2 = fl
 
   }
 
-  if (model == "knn") {
+  if (model == "knn" || model == "kernelknn") {
     # estimate parameters
     if (is.null(D)) {
-      D <- floor(min(floor(n^(0.49)), p))
+      D <- floor(min(sqrt(n), p))
+    }
+
+    if (is.null(B2)) {
+      B2 <- 20*floor(p/D)
     }
 
     # start loops
@@ -497,10 +516,17 @@ RaScreen <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 200, B2 = fl
 
   }
 
+
+
+
   if (model == "tree") {
     # estimate parameters
     if (is.null(D)) {
       D <- floor(min(sqrt(n), p))
+    }
+
+    if (is.null(B2)) {
+      B2 <- 20*floor(p/D)
     }
 
     # start loops
@@ -534,7 +560,11 @@ RaScreen <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 200, B2 = fl
   if (model == "logistic" || model == "svm" || model == "randomforest") {
     # estimate parameters
     if (is.null(D)) {
-      D <- floor(min(floor(n^(0.49)), p))
+      D <- floor(min(sqrt(n), p))
+    }
+
+    if (is.null(B2)) {
+      B2 <- 20*floor(p/D)
     }
 
     # start loops

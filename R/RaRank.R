@@ -19,9 +19,9 @@
 #' @param iteration indicates results from which iteration to use. It should be an positive integer. Default = the maximal interation round used by the output from \code{RaScreen}.
 #' @return Selected variables (indexes).
 #' @references
-#' Tian, Y. and Feng, Y., 2021. RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22, to appear.
-#' @examples
+#' Tian, Y. and Feng, Y., 2021(a). RaSE: A Variable Screening Framework via Random Subspace Ensembles. arXiv preprint arXiv:2102.03892.
 #'
+#' @examples
 #' \dontrun{
 #' set.seed(0, kind = "L'Ecuyer-CMRG")
 #' train.data <- RaModel("screening", 1, n = 100, p = 100)
@@ -32,7 +32,7 @@
 #' fit <- RaScreen(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, model = 'lm',
 #' cores = 2, criterion = 'bic')
 #'
-#' # Select n/logn variables
+#' # Select floor(n/logn) variables
 #' RaRank(fit, selected.num = "n/logn")
 #' }
 

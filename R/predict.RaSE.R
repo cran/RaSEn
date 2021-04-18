@@ -6,6 +6,9 @@
 #' @param ... additional arguments.
 #' @return The predicted labels for new observations.
 #' @seealso \code{\link{Rase}}.
+#' @references
+#' Tian, Y. and Feng, Y., 2021. RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
+#'
 #' @examples
 #' \dontrun{
 #' set.seed(0, kind = "L'Ecuyer-CMRG")
@@ -16,8 +19,8 @@
 #' xtest <- test.data$x
 #' ytest <- test.data$y
 #'
-#' model.fit <- Rase(xtrain, ytrain, B1 = 100, B2 = 100, iteration = 0, cutoff = TRUE,
-#' base = 'lda', cores = 2, criterion = 'ric', ranking = TRUE)
+#' model.fit <- Rase(xtrain, ytrain, B1 = 100, B2 = 100, iteration = 0, base = 'lda',
+#' cores = 2, criterion = 'ric', ranking = TRUE)
 #' ypred <- predict(model.fit, xtest)
 #' }
 #'

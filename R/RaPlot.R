@@ -9,6 +9,9 @@
 #' @param ... additional arguments.
 #' @return a \code{'ggplot'} object.
 #' @seealso \code{\link{Rase}}.
+#' @references
+#' Tian, Y. and Feng, Y., 2021. RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
+#'
 #' @examples
 #' set.seed(0, kind = "L'Ecuyer-CMRG")
 #' train.data <- RaModel("classification", 1, n = 100, p = 50)

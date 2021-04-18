@@ -1,9 +1,9 @@
 #' Generate data \eqn{(x, y)} from various models in two papers.
 #'
-#' \code{RaModel} generates data from 4 models described in Tian, Y. and Feng, Y., 2020 and 6 models described in Tian, Y. and Feng, Y., 2021.
+#' \code{RaModel} generates data from 4 models described in Tian, Y. and Feng, Y., 2021(b) and 8 models described in Tian, Y. and Feng, Y., 2021(a).
 #' @export
-#' @param model.type indicator of the paper covering the model, which can be 'classification' (Tian, Y. and Feng, Y., 2020) or 'screening' (Tian, Y. and Feng, Y., 2021).
-#' @param model.no model number. It can be 1-4 when \code{model.type} = 'classification' and 1-6 when \code{model.type} = 'screening', respectively.
+#' @param model.type indicator of the paper covering the model, which can be 'classification' (Tian, Y. and Feng, Y., 2021(b)) or 'screening' (Tian, Y. and Feng, Y., 2021(a)).
+#' @param model.no model number. It can be 1-4 when \code{model.type} = 'classification' and 1-8 when \code{model.type} = 'screening', respectively.
 #' @param n sample size
 #' @param p data dimension
 #' @param p0 marginal probability of class 0. Default = 0.5. Only used when \code{model.type} = 'classification' and \code{model.no} = 1, 2, 3.
@@ -13,7 +13,7 @@
 #' \item{y}{n responses.}
 #' @note When \code{model.type} = 'classification' and \code{sparse} = TRUE, models 1, 2, 4 require \eqn{p \ge 5} and model 3 requires
 #'  \eqn{p \ge 50}. When \code{model.type} = 'classification' and \code{sparse} = FALSE, models 1 and 4 require \eqn{p \ge 50} and
-#'  \eqn{p \ge 30}, respectively. When \code{model.type} = 'screening', models 1, 4 and 5 require \eqn{p \ge 4}. Model 2 require \eqn{p \ge 5} and model 3 require \eqn{p \ge 22}. Model 5 requires \eqn{p \ge 2}.
+#'  \eqn{p \ge 30}, respectively. When \code{model.type} = 'screening', models 1, 4, 5 and 7 require \eqn{p \ge 4}. Models 2 and 8 require \eqn{p \ge 5}. Model 3 requires \eqn{p \ge 22}. Model 5 requires \eqn{p \ge 2}.
 #' @seealso \code{\link{Rase}}, \code{\link{RaScreen}}.
 #' @examples
 #' train.data <- RaModel("classification", 1, n = 100, p = 50)
@@ -26,9 +26,9 @@
 #' ytrain <- train.data$y
 #' }
 #' @references
-#' Tian, Y. and Feng, Y., 2021. RaSE: A Variable Screening Framework via Random Subspace Ensembles.
+#' Tian, Y. and Feng, Y., 2021(a). RaSE: A Variable Screening Framework via Random Subspace Ensembles. arXiv preprint arXiv:2102.03892.
 #'
-#' Tian, Y. and Feng, Y., 2021. RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22, to appear.
+#' Tian, Y. and Feng, Y., 2021(b). RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
 
 RaModel <- function(model.type, model.no, n, p, p0 = 1/2, sparse = TRUE) {
     if (model.type == "classification") {
@@ -129,6 +129,8 @@ RaModel <- function(model.type, model.no, n, p, p0 = 1/2, sparse = TRUE) {
             Y <- as.vector(X[, 1:4]%*%beta0 + rnorm(n))
         }
 
+
+
         if (model.no == 2) { # knn example, continuous response
             Sigma <- outer(1:p, 1:p, function(i, j) {
                 0.5^(abs(i - j))
@@ -141,6 +143,8 @@ RaModel <- function(model.type, model.no, n, p, p0 = 1/2, sparse = TRUE) {
             X[z == 0, 1:5] <- X[z == 0, 1:5] + 3
             X[z == 1, 1:5] <- X[z == 1, 1:5] - 3
         }
+
+
 
         if (model.no == 3) { # exp 1.c in DC-SIS
             u <- sample(0:1, 4, prob = c(0.6, 0.4), replace = T)
@@ -157,10 +161,11 @@ RaModel <- function(model.type, model.no, n, p, p0 = 1/2, sparse = TRUE) {
             Y <- 2*beta[1]*X[, 1]*X[, 2] + 3*beta[2]*I(X[, 12]<0)*X[, 22] + rnorm(n)
         }
 
-        if (model.no == 4) {
+        if (model.no == 4) { # 4-way interaction
             X <- matrix(rnorm(n*p), nrow = n)
             Y <- 2*(1.5*sqrt(abs(X[, 1])) + sqrt(abs(X[, 1]))*X[, 2]^2 + 2*sin(X[, 1])*sin(X[, 2])*sin(X[, 3])^2 + 6*sin(X[, 1])*abs(X[, 2])*sin(X[, 3])*X[, 4]^2)  + 0.5*rnorm(n)
         }
+
 
         if (model.no == 5){ #samworth model 1
             Y1 <- rmultinom(1, n, c(p0, 1 - p0))
@@ -174,8 +179,7 @@ RaModel <- function(model.type, model.no, n, p, p0 = 1/2, sparse = TRUE) {
             X <- rbind(X0, X1)
         }
 
-
-        if (model.no == 6) {
+        if (model.no == 6) { # exp in isis
             Xt <- cbind(matrix(runif(4*n, min = -sqrt(3), max = sqrt(3)), nrow = n), matrix(rnorm(n*(p-4)), nrow = n))
             X <- Xt
             X[, 1] <- Xt[, 1] - sqrt(2)*Xt[, 5]
@@ -191,6 +195,43 @@ RaModel <- function(model.type, model.no, n, p, p0 = 1/2, sparse = TRUE) {
             pr[, 4] <- a*Xt[, 3] - a*Xt[, 4]
             Y <- sapply(1:n, function(i){sample(0:3, 1, prob = exp(pr[i, ]))})
         }
+
+        if (model.no == 7) { # exp in SIS, with covariates from the rat data set
+            rat <- NULL
+            data(rat, envir = environment())
+            r <- 0.5
+            n <- length(rat$y)
+            beta0 <- c(rep(5, 3), -15*sqrt(r))
+            dta <- cbind(rat$x, rat$y)
+            v.ind <- sample(1:ncol(dta), p)
+            X <- scale(dta[, v.ind])
+            Y <- as.vector(X[, 1:4]%*%beta0 + rnorm(n))
+        }
+
+        if (model.no == 8) { # knn example with mixed types of variables
+            if (p != 2000) {
+                stop("Screening Model 8 requires p = 2000!")
+            }
+            X <- matrix(nrow = n, ncol = p)
+            Sigma <- outer(1:(p*4/5), 1:(p*4/5), function(i, j) {
+                0.5^(abs(i - j))
+            })
+            R <- chol(Sigma)
+
+            beta <- c(rep(0.5, 5), rep(0, p-5))
+            z <- sample(0:1, n, replace = TRUE, prob = c(0.5, 0.5))
+
+            X[, -seq(5,2000,5)] <- tcrossprod(matrix(rnorm(n*(p*4/5)), nrow = n, ncol = p*4/5), t(R))
+            X[, seq(5,2000,5)] <- sapply(1:(p/5), function(j){
+                sample(seq(-2,2,1), n, replace = TRUE)
+            })
+            Y <- as.vector(X[,1:5]%*%beta[1:5] + 0.5*rt(n, df = 2))
+
+            X[z == 0, 1:5] <- X[z == 0, 1:5] + 3
+            X[z == 1, 1:5] <- X[z == 1, 1:5] - 3
+        }
+
+
     }
 
 

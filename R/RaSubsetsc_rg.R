@@ -57,6 +57,27 @@ RaSubsetsc_rg <- function(xtrain, ytrain, xval, yval, B2, S, model, k, criterion
     }
   }
 
+  if (model == "kernelknn") {
+    if (criterion == "cv") {
+      folds <- createFolds(ytrain, cv)
+      subspace.list <- sapply(1:B2, function(i) {
+        d <- length(S[, i][!is.na(S[, i])])  # subspace size
+        Si <- matrix(S[, i][!is.na(S[, i])], nrow = d)  # current subspace
+        xtrain.r <- xtrain[, Si, drop = F]
+        knn.test <- sapply(1:cv, function(j) {
+          ypred <- KernelKnn(data = xtrain.r[-folds[[j]], , drop = F], TEST_data = xtrain.r[folds[[j]], , drop = F], y = ytrain[-folds[[j]]], k = k, regression = T, ...)
+          mean((ypred  - ytrain[folds[[j]]])^2)
+          # mean((knn.reg(train = xtrain.r[-folds[[j]], , drop = F], y = ytrain[-folds[[j]]], test = xtrain.r[folds[[j]], , drop = F], k = k)$pred - ytrain[folds[[j]]])^2)
+        })
+
+        mean(knn.test)
+      })
+
+      i0 <- which.min(subspace.list)
+      S <- S[!is.na(S[, i0]), i0]  # final optimal subspace
+    }
+  }
+
   if (model == "svm") {
     if (!is.character(kernel)) {
       kernel <- "radial"

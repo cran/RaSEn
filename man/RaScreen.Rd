@@ -10,7 +10,7 @@ RaScreen(
   xval = NULL,
   yval = NULL,
   B1 = 200,
-  B2 = floor(ncol(xtrain)^1.1),
+  B2 = NULL,
   D = NULL,
   dist = NULL,
   model = NULL,
@@ -38,9 +38,9 @@ RaScreen(
 
 \item{B1}{the number of weak learners. Default = 200.}
 
-\item{B2}{the number of subspace candidates generated for each weak learner. Default = \eqn{floor(p^{1.1})}.}
+\item{B2}{the number of subspace candidates generated for each weak learner. Default = \code{NULL}, which will set B2 = \eqn{20*floor(p/D)}.}
 
-\item{D}{the maximal subspace size when generating random subspaces. Default = \code{NULL}. It means that \code{D} = \eqn{min(\sqrt n0, \sqrt n1, p)} when \code{model} = 'qda', \code{D} = \eqn{min(n^{0.49}, p)} when \code{model} = 'lm', and \code{D} = \eqn{min(\sqrt n, p)} otherwise.}
+\item{D}{the maximal subspace size when generating random subspaces. Default = \code{NULL}. It means that \code{D} = \eqn{min(\sqrt n0, \sqrt n1, p)} when \code{model} = 'qda', and \code{D} = \eqn{min(\sqrt n, p)} otherwise.}
 
 \item{dist}{the distribution for features when generating random subspaces. Default = \code{NULL}, which represents the hierarchical uniform distribution. First generate an integer \eqn{d} from \eqn{1,...,D} uniformly, then uniformly generate a subset with cardinality \eqn{d}.}
 
@@ -54,6 +54,7 @@ RaScreen(
 \item tree: decision tree. \code{\link[rpart]{rpart}} in \code{rpart} package. Only available for classification.
 \item svm: support vector machine. If kernel is not identified by user, it will use RBF kernel. \code{\link[e1071]{svm}} in \code{e1071} package.
 \item randomforest: random forest. \code{\link[randomForest]{randomForest}} in \code{randomForest} package and \code{\link[ranger]{ranger}} in \code{ranger} package.
+\item kernelknn: k-nearest neighbor with different kernels. It relies on function \code{\link[KernelKnn]{KernelKnn}} in \code{KernelKnn} package. Arguments \code{method} and \code{weights_function} are required. Different choices of multiple arguments are available. See documentation of function \code{\link[KernelKnn]{KernelKnn}} for details.
 }}
 
 \item{criterion}{the criterion to choose the best subspace. Default = 'ric' when \code{model} = 'lda', 'qda'; default = 'bic' when \code{model} = 'lm' or 'logistic'; default = 'loo' when \code{model} = 'knn'; default = 'cv' and set \code{cv} = 5 when \code{model} = 'tree', 'svm', 'randomforest'.
@@ -77,7 +78,7 @@ BIC = -2 * log-likelihood + |S| * log(n).
 eBIC = -2 * log-likelihood + |S| * log(n) + 2 * |S| * gam * log(p).
 }}
 
-\item{k}{the number of nearest neightbors considered when \code{model} = 'knn'. Only useful when \code{model} = 'knn'. Default = 5.}
+\item{k}{the number of nearest neightbors considered when \code{model} = 'knn' or 'kernel'. Only useful when \code{model} = 'knn' or 'kernel'. \code{k} is required to be a positive integer. Default = 5.}
 
 \item{cores}{the number of cores used for parallel computing. Default = 1.}
 
@@ -157,9 +158,9 @@ RaRank(fit, selected.num = "n/logn", iteration = 1)
 }
 }
 \references{
-Tian, Y. and Feng, Y., 2021. RaSE: A Variable Screening Framework via Random Subspace Ensembles.
+Tian, Y. and Feng, Y., 2021(a). RaSE: A Variable Screening Framework via Random Subspace Ensembles. arXiv preprint arXiv:2102.03892.
 
-Tian, Y. and Feng, Y., 2021. RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22, to appear.
+Tian, Y. and Feng, Y., 2021(b). RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
 
 Chen, J. and Chen, Z., 2008. Extended Bayesian information criteria for model selection with large model spaces. Biometrika, 95(3), pp.759-771.
 

@@ -32,7 +32,7 @@ We provide a detailed demo of the usage for the \verb+RaSEn+ package. This packa
 
   + [How to use RaSE for feature ranking](#fk)
 
-* [Variable Screening via Random Subspace Ensemble](#screening)
+* [Variable Screening via Random Subspace Ensembles](#screening)
 
   + [Introduction](#intro2)
 

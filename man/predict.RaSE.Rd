@@ -29,11 +29,14 @@ ytrain <- train.data$y
 xtest <- test.data$x
 ytest <- test.data$y
 
-model.fit <- Rase(xtrain, ytrain, B1 = 100, B2 = 100, iteration = 0, cutoff = TRUE,
-base = 'lda', cores = 2, criterion = 'ric', ranking = TRUE)
+model.fit <- Rase(xtrain, ytrain, B1 = 100, B2 = 100, iteration = 0, base = 'lda',
+cores = 2, criterion = 'ric', ranking = TRUE)
 ypred <- predict(model.fit, xtest)
 }
 
+}
+\references{
+Tian, Y. and Feng, Y., 2021. RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
 }
 \seealso{
 \code{\link{Rase}}.
