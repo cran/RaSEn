@@ -48,5 +48,5 @@ RaRank(fit, selected.num = "n/logn")
 }
 }
 \references{
-Tian, Y. and Feng, Y., 2021(a). RaSE: A Variable Screening Framework via Random Subspace Ensembles. arXiv preprint arXiv:2102.03892.
+Tian, Y. and Feng, Y., 2021(a). RaSE: A variable screening framework via random subspace ensembles. Journal of the American Statistical Association, (just-accepted), pp.1-30.
 }

@@ -1,0 +1,23 @@
+RaSEn v2.2.0 (Release date: 2021-08-18)
+==============
+
+Changes:
+
+* Added parameters "weights", "upper.limit" and "lower.limits" in function "Rase". They are available only when base = "logistic" and criterion is not equal to "nric". For more details please see the help documentation of function "Rase". This might be helpful in finance modeling and other applications where the coefficient sign is required to be positive or negative.
+
+* Added more output types for the predict function. Now it supports 4 types of output --- "vote", "prob", "raw-vote" and "raw-prob". "vote" is the same as output in the previous version by voting and cut-off. "prob" provides the average probability P(Y=1|X) for each new observation, which is calculated from B1 base learners. "raw-vote" provides a matrix storing the classification results for new observations from all B1 meta classifiers. "raw-prob" gives you the probability (P(Y=1|X)) matrix for new observations from all B1 meta classifiers.  See the help documentation of function preditc.Rase() for more details.
+
+* Added "auc" as a criterion (maximizing AUC or minimizing negative AUC). Currently it is estimated on training data via function "auc" from package "ModelMetrics". It is available for all classier choices.
+
+
+
+RaSEn v2.1.0 (Release date: 2021-04-18)
+==============
+
+Changes:
+
+* Added the variable screening function for both regression and classification problems. See the updated references:
+
+Tian, Y. and Feng, Y., 2021. RaSE: A variable screening framework via random subspace ensembles. Journal of the American Statistical Association, (just-accepted), pp.1-30.
+
+Tian, Y. and Feng, Y., 2021. RaSE: Random Subspace Ensemble Classification. Journal of Machine Learning Research, 22, pp.1-93.

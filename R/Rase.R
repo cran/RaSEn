@@ -50,6 +50,9 @@
 #' @importFrom ranger ranger
 #' @importFrom KernelKnn KernelKnn
 #' @importFrom utils data
+#' @importFrom glmnet glmnet
+#' @importFrom glmnet predict.glmnet
+#' @importFrom ModelMetrics auc
 #' @param xtrain n * p observation matrix. n observations, p features.
 #' @param ytrain n 0/1 observatons.
 #' @param xval observation matrix for validation. Default = \code{NULL}. Useful only when \code{criterion} = 'validation'.
@@ -63,7 +66,7 @@
 #' \item lda: linear discriminant analysis. \code{\link[MASS]{lda}} in \code{MASS} package.
 #' \item qda: quadratic discriminant analysis. \code{\link[MASS]{qda}} in \code{MASS} package.
 #' \item knn: k-nearest neighbor. \code{\link[class]{knn}}, \code{\link[class]{knn.cv}} in \code{class} package and \code{\link[caret]{knn3}} in \code{caret} package.
-#' \item logistic: logistic regression. \code{\link[glmnet]{glmnet}} in \code{glmnet} package.
+#' \item logistic: logistic regression. \code{\link[stats]{glm}} in \code{stats} package and \code{\link[glmnet]{glmnet}} in \code{glmnet} package.
 #' \item tree: decision tree. \code{\link[rpart]{rpart}} in \code{rpart} package.
 #' \item svm: support vector machine. \code{\link[e1071]{svm}} in \code{e1071} package.
 #' \item randomforest: random forest. \code{\link[randomForest]{randomForest}} in \code{randomForest} package.
@@ -76,6 +79,7 @@
 #' \item training: minimizing training error. Not available when \code{base} = 'knn'.
 #' \item loo: minimizing leave-one-out error. Only available when  \code{base} = 'knn'.
 #' \item validation: minimizing validation error based on the validation data. Available for all base classifiers.
+#' \item auc: minimizing negative area under the ROC curve (AUC). Currently it is estimated on training data via function \code{\link[ModelMetrics]{auc}} from package \code{ModelMetrics}. It is available for all classier choices.
 #' \item cv: minimizing k-fold cross-validation error. k equals to the value of \code{cv}. Default = 5. Not available when \code{base} = 'gamma'.
 #' \item aic: minimizing Akaike information criterion (Akaike, H., 1973). Available when \code{base} = 'lda' or 'logistic'.
 #'
@@ -100,6 +104,9 @@
 #' @param scale whether to normalize the data. Logistic, default = FALSE.
 #' @param C0 a positive constant used when \code{iteration} > 1. See Tian, Y. and Feng, Y., 2021(b) for details.
 #' @param kl.k the number of nearest neighbors used to estimate RIC in a non-parametric way. Default = \code{NULL}, which means that \eqn{k0 = floor(\sqrt n0)} and \eqn{k1 = floor(\sqrt n1)}. See Tian, Y. and Feng, Y., 2021(b) for details. Only available when \code{criterion} = 'nric'.
+#' @param lower.limits the vector of lower limits for each coefficient in logistic regression. Should be a vector of length equal to the number of variables (the column number of \code{xtrain}). Each of these must be non-positive. Default = \code{NULL}, meaning that lower limits are \code{-Inf} for all coefficients. Only available when \code{base} = 'logistic'. When it's activated, function \code{\link[glmnet]{glmnet}} will be used to fit logistic regression models, in which case the minimum subspace size is required to be larger than 1. The default subspace size distribution will be changed to uniform distribution on (2, ..., D).
+#' @param upper.limits the vector of upper limits for each coefficient in logistic regression. Should be a vector of length equal to the number of variables (the column number of \code{xtrain}). Each of these must be non-negative. Default = \code{NULL}, meaning that upper limits are \code{Inf} for all coefficients. Only available when \code{base} = 'logistic'. When it's activated, function \code{\link[glmnet]{glmnet}} will be used to fit logistic regression models, in which case the minimum subspace size is required to be larger than 1. The default subspace size distribution will be changed to uniform distribution on (2, ..., D).
+#' @param weights observation weights. Should be a vector of length equal to training sample size (the length of \code{ytrain}). It will be normailized inside the algorithm. Each component of weights must be non-negative. Default is \code{NULL}, representing equal weight for each observation. Only available when \code{base} = 'logistic'. When it's activated, function \code{\link[glmnet]{glmnet}} will be used to fit logistic regression models, in which case the minimum subspace size is required to be larger than 1. The default subspace size distribution will be changed to uniform distribution on (2, ..., D).
 #' @param ... additional arguments.
 #' @return An object with S3 class \code{'RaSE'}.
 #' \item{marginal}{the marginal probability for each class.}
@@ -114,11 +121,12 @@
 #' \item{subspace}{sequence of subspaces correponding to B1 weak learners.}
 #' \item{ranking}{the selected percentage of each feature in B1 subspaces.}
 #' \item{scale}{a list of scaling parameters, including the scaling center and the scale parameter for each feature. Equals to \code{NULL} when the data is not scaled in \code{RaSE} model fitting.}
+#' @author Ye Tian (maintainer, \email{ye.t@@columbia.edu}) and Yang Feng. The authors thank Yu Cao (Exeter Finance) and his team for many helpful suggestions and discussions.
 #' @seealso \code{\link{predict.RaSE}}, \code{\link{RaModel}}, \code{\link{print.RaSE}}, \code{\link{RaPlot}}, \code{\link{RaScreen}}.
 #' @references
-#' Tian, Y. and Feng, Y., 2021(b). RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
+#' Tian, Y. and Feng, Y., 2021(a). RaSE: A variable screening framework via random subspace ensembles. Journal of the American Statistical Association, (just-accepted), pp.1-30.
 #'
-#' Tian, Y. and Feng, Y., 2021(a). RaSE: A Variable Screening Framework via Random Subspace Ensembles. arXiv preprint arXiv:2102.03892.
+#' Tian, Y. and Feng, Y., 2021(b). RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
 #'
 #' Chen, J. and Chen, Z., 2008. Extended Bayesian information criteria for model selection with large model spaces. Biometrika, 95(3), pp.759-771.
 #'
@@ -176,7 +184,7 @@
 
 Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 200, B2 = 500, D = NULL, dist = NULL, base = c("lda",
     "qda", "knn", "logistic", "tree", "svm", "randomforest", "gamma", "NULL"), criterion = NULL, ranking = TRUE, k = c(3, 5, 7, 9, 11), cores = 1,
-    seed = NULL, iteration = 0, cutoff = TRUE, cv = 5, scale = FALSE, C0 = 0.1, kl.k = NULL, ...) {
+    seed = NULL, iteration = 0, cutoff = TRUE, cv = 5, scale = FALSE, C0 = 0.1, kl.k = NULL, lower.limits = NULL, upper.limits = NULL, weights = NULL, ...) {
 
 
     if (!is.null(seed)) {
@@ -465,22 +473,38 @@ Rase <- function(xtrain, ytrain, xval = NULL, yval = NULL, B1 = 200, B2 = 500, D
     }
 
     if (base == "logistic" || base == "svm" || base == "randomforest") {
+
         # estimate parameters
         if (is.null(D)) {
             D <- floor(min(sqrt(n), p))
+        }
+
+        if (all(is.null(lower.limits)) && all(is.null(upper.limits)) || criterion == "nric") {
+            use.glmnet <- FALSE
+        } else {
+            use.glmnet <- TRUE
         }
 
         # start loops
         dist <- rep(1, p)
         for (t in 1:(iteration + 1)) {
             output <- foreach(i = 1:B1, .combine = "rbind", .packages = "MASS") %dopar% {
+
                 S <- sapply(1:B2, function(j) {
-                  S.size <- sample(1:D, 1)
-                  c(sample(1:p, size = min(S.size, length(dist[dist != 0])), prob = dist), rep(NA, D - min(S.size, length(dist[dist !=
-                    0]))))
+                    if (use.glmnet) {
+                        S.size <- sample(2:D, 1) # glmnet cannot fit the model with a single variable
+                        if (length(dist[dist != 0]) == 1) {
+                            stop ("Only one feature has positive sampling weights! 'glmnet' cannot be applied in this case! ")
+                        }
+                    } else {
+                        S.size <- sample(1:D, 1)
+                    }
+                    c(sample(1:p, size = min(S.size, length(dist[dist != 0])), prob = dist), rep(NA, D - min(S.size, length(dist[dist !=
+                                                                                                                                     0]))))
                 })
+
                 RaSubset(xtrain = xtrain, ytrain = ytrain, xval = xval, yval = yval, B2 = B2, S = S, base = base, k = k, kl.k = kl.k,
-                  criterion = criterion, cv = cv, ...)
+                  criterion = criterion, cv = cv, lower.limits = lower.limits, upper.limits = upper.limits, weights = weights, ...)
             }
 
             if (is.matrix(output)) {

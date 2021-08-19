@@ -1,4 +1,4 @@
-RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, t0.mle = NULL, t1.mle = NULL, mu0.mle = NULL,  mu1.mle = NULL, Sigma.mle = NULL, Sigma0.mle = NULL, Sigma1.mle = NULL, gam = NULL, kl.k = kl.k, ...) {
+RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, t0.mle = NULL, t1.mle = NULL, mu0.mle = NULL,  mu1.mle = NULL, Sigma.mle = NULL, Sigma0.mle = NULL, Sigma1.mle = NULL, gam = NULL, kl.k = NULL, lower.limits = NULL, upper.limits = NULL, weights = NULL, ...) {
     list2env(list(...), environment())
     n <- length(ytrain)
     p <- ncol(xtrain)
@@ -56,58 +56,155 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
     }
 
     if (base == "logistic") {
+        if (criterion == "auc") {
+            if (all(is.null(lower.limits)) && all(is.null(upper.limits))) {
+                subspace.list <- sapply(1:B2, function(i) {
+                    Si <- S[, i][!is.na(S[, i])]  # current subspace
+                    xtrain.r <- xtrain[, Si, drop = F]
+                    score <- predict(glm(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), family = "binomial", weights = weights), data.frame(x = xtrain.r))
+                    -auc(ytrain, score)
+                })
+            } else {
+                if (all(is.null(lower.limits))) {
+                    lower.limits <- rep(-Inf, p)
+                }
+
+                if (all(is.null(upper.limits))) {
+                    upper.limits <- rep(Inf, p)
+                }
+
+                subspace.list <- sapply(1:B2, function(i) {
+                    Si <- S[, i][!is.na(S[, i])]  # current subspace
+                    xtrain.r <- xtrain[, Si, drop = F]
+                    score <- predict(glmnet(x = xtrain.r, y = ytrain, family = "binomial", alpha = 1, lambda = 0, weights = weights, upper.limits = upper.limits, lower.limits = lower.limits), xtrain.r)
+                    -auc(ytrain, score)
+                })
+            }
+        }
+
+
         if (criterion == "nric") {
             subspace.list <- sapply(1:B2, function(i) {
-                # the last row is training error for each i in 1:B2
                 Si <- S[, i][!is.na(S[, i])]  # current subspace
                 -2*(p0*KL.divergence(xtrain[ytrain == 0, Si, drop = F], xtrain[ytrain == 1, Si, drop = F], k = kl.k[1])[kl.k[1]] + p1*KL.divergence(xtrain[ytrain == 1, Si, drop = F], xtrain[ytrain == 0, Si, drop = F], k = kl.k[2])[kl.k[2]]) + length(Si)*log(log(n))/sqrt(n)
             })
         }
 
+        if (is.null(weights)) {
+            weights <- rep(1, n)/n
+        }
+
         if (criterion == "ric") {
-            subspace.list <- sapply(1:B2, function(i) {
-                Si <- S[, i][!is.na(S[, i])]  # current subspace
-                xtrain.r <- xtrain[, Si, drop = F]
-                score <- predict(glm(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), family = "binomial"), data.frame(x = xtrain.r))
-                posterior0 <- 1/(1 + exp(score))
-                posterior1 <- 1 - posterior0
-                ric("other", xtrain, ytrain, Si, p0 = p0, p1 = p1, posterior0 = posterior0, posterior1 = posterior1, deg = function(i) {
-                  i
+            if (all(is.null(lower.limits)) && all(is.null(upper.limits))) {
+                subspace.list <- sapply(1:B2, function(i) {
+                    Si <- S[, i][!is.na(S[, i])]  # current subspace
+                    xtrain.r <- xtrain[, Si, drop = F]
+                    score <- predict(glm(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), family = "binomial"), data.frame(x = xtrain.r))
+                    posterior0 <- 1/(1 + exp(score))
+                    posterior1 <- 1 - posterior0
+                    ric("other", xtrain, ytrain, Si, p0 = p0, p1 = p1, posterior0 = posterior0, posterior1 = posterior1, weights = weights, deg = function(i) {
+                        i
+                    })
                 })
-            })
+            } else {
+                if (all(is.null(lower.limits))) {
+                    lower.limits <- rep(-Inf, p)
+                }
+
+                if (all(is.null(upper.limits))) {
+                    upper.limits <- rep(Inf, p)
+                }
+                subspace.list <- sapply(1:B2, function(i) {
+                    Si <- S[, i][!is.na(S[, i])]  # current subspace
+                    xtrain.r <- xtrain[, Si, drop = F]
+                    score <- predict(glmnet(x = xtrain.r, y = ytrain, family = "binomial", intercept = FALSE, alpha = 1, lambda = 0, weights = weights, lower.limits = lower.limits, upper.limits = upper.limits), xtrain.r)
+                    posterior0 <- 1/(1 + exp(score))
+                    posterior1 <- 1 - posterior0
+                    ric("other", xtrain, ytrain, Si, p0 = p0, p1 = p1, posterior0 = posterior0, posterior1 = posterior1, weights = weights, deg = function(i) {
+                        i
+                    })
+                })
+            }
+
         }
 
 
         if (criterion == "aic") {
-            subspace.list <- sapply(1:B2, function(i) {
-                Si <- S[, i][!is.na(S[, i])]  # current subspace
-                calc_aic(xtrain, ytrain, Si)
-            })
+            if (all(is.null(lower.limits)) && all(is.null(upper.limits))) {
+                subspace.list <- sapply(1:B2, function(i) {
+                    Si <- S[, i][!is.na(S[, i])]  # current subspace
+                    calc_aic(xtrain, ytrain, Si, weights = weights)
+                })
+            } else {
+                if (all(is.null(lower.limits))) {
+                    lower.limits <- rep(-Inf, p)
+                }
+
+                if (all(is.null(upper.limits))) {
+                    upper.limits <- rep(Inf, p)
+                }
+
+                subspace.list <- sapply(1:B2, function(i) {
+                    Si <- S[, i][!is.na(S[, i])]  # current subspace
+                    calc_aic_glmnet(x = xtrain, y = ytrain, S = Si, weights = weights, upper.limits = upper.limits[Si], lower.limits = lower.limits[Si])
+                })
+            }
         }
 
-        if (criterion == "ebic") {
-            subspace.list <- sapply(1:B2, function(i) {
-                Si <- S[, i][!is.na(S[, i])]  # current subspace
-                # calc_BIC(xtrain, ytrain, Si, D = 0, K = 0, debug = F, gam = gam)
-                calc_ebic(xtrain, ytrain, Si, gam)
-            })
+        if (criterion == "ebic" || criterion == "bic") {
+            if (criterion == "bic") {
+                gam <- 0
+            }
+
+            if (all(is.null(lower.limits)) && all(is.null(upper.limits))) {
+                subspace.list <- sapply(1:B2, function(i) {
+                    Si <- S[, i][!is.na(S[, i])]  # current subspace
+                    calc_ebic(xtrain, ytrain, Si, gam, weights = weights)
+                })
+            } else {
+                if (all(is.null(lower.limits))) {
+                    lower.limits <- rep(-Inf, p)
+                }
+
+                if (all(is.null(upper.limits))) {
+                    upper.limits <- rep(Inf, p)
+                }
+
+                subspace.list <- sapply(1:B2, function(i) {
+                    Si <- S[, i][!is.na(S[, i])]  # current subspace
+                    calc_ebic_glmnet(x = xtrain, y = ytrain, S = Si, gam = gam, weights = weights, upper.limits = upper.limits[Si], lower.limits = lower.limits[Si])
+                })
+            }
+
         }
 
-        if (criterion == "bic") {
-            subspace.list <- sapply(1:B2, function(i) {
-                Si <- S[, i][!is.na(S[, i])]  # current subspace
-                calc_ebic(xtrain, ytrain, Si, gam = 0)
-            })
-        }
 
         if (criterion == "training") {
-            subspace.list <- sapply(1:B2, function(i) {
-                # the last row is training error for each i in 1:B2
-                Si <- S[, i][!is.na(S[, i])]  # current subspace
-                xtrain.r <- xtrain[, Si, drop = F]
-                mean(as.numeric(I(predict(glm(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), family = "binomial"), data.frame(x = xtrain.r)) >
-                  0)) != ytrain, na.rm = TRUE)
-            })
+            if (all(is.null(lower.limits)) && all(is.null(upper.limits))) {
+                subspace.list <- sapply(1:B2, function(i) {
+                    # the last row is training error for each i in 1:B2
+                    Si <- S[, i][!is.na(S[, i])]  # current subspace
+                    xtrain.r <- xtrain[, Si, drop = F]
+                    mean(as.numeric(I(predict(glm(y ~ .-1, data = data.frame(x = xtrain.r, y = ytrain), family = "binomial", weights = weights), data.frame(x = xtrain.r)) >
+                      0)) != ytrain, na.rm = TRUE)
+                })
+            } else {
+                if (all(is.null(lower.limits))) {
+                    lower.limits <- rep(-Inf, p)
+                }
+
+                if (all(is.null(upper.limits))) {
+                    upper.limits <- rep(Inf, p)
+                }
+
+                subspace.list <- sapply(1:B2, function(i) {
+                    # the last row is training error for each i in 1:B2
+                    Si <- S[, i][!is.na(S[, i])]  # current subspace
+                    xtrain.r <- xtrain[, Si, drop = F]
+                    mean(as.numeric(I(predict(glmnet(x = xtrain.r, y = ytrain, alpha = 1, lambda = 0, intercept = FALSE, family = "binomial", weights = weights, upper.limits = upper.limits, lower.limits = lower.limits), xtrain.r) >
+                                          0)) != ytrain, na.rm = TRUE)
+                })
+            }
         }
 
         if (criterion == "validation") {
@@ -141,8 +238,15 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
         S <- S[!is.na(S[, i0]), i0]  # final optimal subspace
 
         xtrain.r <- xtrain[, S, drop = F]
-        fit <- glm(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), family = "binomial")
-        ytrain.pred <- as.numeric(I(predict(fit, data.frame(x = xtrain.r)) > 0))
+        if (all(is.null(lower.limits)) && all(is.null(upper.limits)) || criterion == "nric") {
+            fit <- glm(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), family = "binomial", weights = weights)
+            ytrain.pred <- as.numeric(I(predict(fit, data.frame(x = xtrain.r)) > 0))
+        } else {
+            fit <- glmnet(x = xtrain.r, y = ytrain, family = "binomial", alpha = 1, lambda = 0, weights = weights, upper.limits =  upper.limits[S], lower.limits = lower.limits[S])
+            ytrain.pred <- as.numeric(I(predict(fit, xtrain.r) > 0))
+        }
+
+
     }
 
     if (base == "svm") {
@@ -150,12 +254,21 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
             kernel <- "linear"
         }
 
+        if (criterion == "auc") {
+            subspace.list <- sapply(1:B2, function(i) {
+                Si <- S[, i][!is.na(S[, i])]  # current subspace
+                xtrain.r <- xtrain[, Si, drop = F]
+                score <- as.numeric(attr(predict(svm(x = xtrain.r, y = ytrain, kernel = kernel, type = "C-classification", ...), xtrain.r),"decision.values"))
+                -auc(ytrain, score)
+            })
+        }
+
         if (criterion == "training") {
             subspace.list <- sapply(1:B2, function(i) {
                 # the last row is training error for each i in 1:B2
                 Si <- S[, i][!is.na(S[, i])]  # current subspace
                 xtrain.r <- xtrain[, Si, drop = F]
-                mean(as.numeric(predict(svm(x = xtrain.r, y = ytrain, kernel = kernel, type = "C-classification"), xtrain.r)) - 1 !=
+                mean(as.numeric(predict(svm(x = xtrain.r, y = ytrain, kernel = kernel, type = "C-classification", ...), xtrain.r)) - 1 !=
                   ytrain, na.rm = TRUE)
             })
         }
@@ -205,6 +318,17 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
 
 
     if (base == "randomforest") {
+        if (criterion == "auc") {
+            subspace.list <- sapply(1:B2, function(i) {
+                # the last row is training error for each i in 1:B2
+                Si <- S[, i][!is.na(S[, i])]  # current subspace
+                xtrain.r <- xtrain[, Si, drop = F]
+                score <- as.numeric(predict(randomForest(x = xtrain.r, y = factor(ytrain), ...), xtrain.r, type = "prob")[, 1])
+                -auc(ytrain, score)
+            })
+        }
+
+
         if (criterion == "training") {
             subspace.list <- sapply(1:B2, function(i) {
                 # the last row is training error for each i in 1:B2
@@ -257,6 +381,32 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
     }
 
     if (base == "knn") {
+        if (criterion == "auc") {
+            subspace.list <- sapply(1:B2, function(i) {
+                d <- length(S[, i][!is.na(S[, i])])  # subspace size
+                Si <- matrix(S[, i][!is.na(S[, i])], nrow = d)  # current subspace
+                xtrain.r <- xtrain[, Si, drop = F]
+                knn.test <- sapply(k, function(j) {
+                    rs <- knn.cv(xtrain.r, ytrain, j, use.all = FALSE, prob = TRUE)
+                    - auc(ytrain, attr(rs,"prob"))
+                })
+                min(knn.test)
+            })
+
+            i0 <- which.min(subspace.list)
+            S <- S[!is.na(S[, i0]), i0]  # final optimal subspace
+
+            xtrain.r <- xtrain[, S, drop = F]
+
+            knn.test <- sapply(k, function(j) {
+                rs <- knn.cv(xtrain.r, ytrain, j, use.all = FALSE, prob = TRUE)
+                - auc(rs, attr(rs,"prob"))
+            })
+            k.op <- k[which.min(knn.test)]
+            fit <- knn3(x = xtrain.r, y = factor(ytrain), k = k.op, use.all = FALSE)
+            ytrain.pred <- predict(fit, xtrain.r, type = "class")
+        }
+
         if (criterion == "loo") {
             subspace.list <- sapply(1:B2, function(i) {
                 d <- length(S[, i][!is.na(S[, i])])  # subspace size
@@ -350,6 +500,16 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
     }
 
     if (base == "tree") {
+        if (criterion == "auc") {
+            subspace.list <- sapply(1:B2, function(i) {
+                # the last row is training error for each i in 1:B2
+                Si <- S[, i][!is.na(S[, i])]  # current subspace
+                xtrain.r <- xtrain[, Si, drop = F]
+                fit <- rpart(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), method = "class")
+                score <- as.numeric(predict(fit, data = data.frame(x = xtrain.r), type = "prob")[, 2])
+                -auc(ytrain, score)
+            })
+        }
 
         if (criterion == "training") {
             subspace.list <- sapply(1:B2, function(i) {
@@ -406,6 +566,15 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
     }
 
     if (base == "lda") {
+        if (criterion == "auc") {
+            subspace.list <- sapply(1:B2, function(i) {
+                Si <- S[, i][!is.na(S[, i])]  # current subspace
+                xtrain.r <- xtrain[, Si, drop = F]
+                score <- as.numeric(predict(lda(x = xtrain.r, grouping = ytrain), xtrain.r)$x)
+                -auc(ytrain, score)
+            })
+        }
+
         if (criterion == "nric") {
             subspace.list <- sapply(1:B2, function(i) {
                 # the last row is training error for each i in 1:B2
@@ -488,6 +657,15 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
     }
 
     if (base == "qda") {
+        if (criterion == "auc") {
+            subspace.list <- sapply(1:B2, function(i) {
+                Si <- S[, i][!is.na(S[, i])]  # current subspace
+                xtrain.r <- xtrain[, Si, drop = F]
+                score <- predict(qda(x = xtrain.r, grouping = ytrain), xtrain.r)$posterior[, 2]
+                -auc(ytrain, score)
+            })
+        }
+
         if (criterion == "nric") {
             subspace.list <- sapply(1:B2, function(i) {
                 # the last row is training error for each i in 1:B2

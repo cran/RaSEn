@@ -66,7 +66,7 @@
 #' \item{scale}{a list of scaling parameters, including the scaling center and the scale parameter for each feature. Equals to \code{NULL} when the data is not scaled by \code{RaScreen}.}
 #' @seealso \code{\link{Rase}}, \code{\link{RaRank}}.
 #' @references
-#' Tian, Y. and Feng, Y., 2021(a). RaSE: A Variable Screening Framework via Random Subspace Ensembles. arXiv preprint arXiv:2102.03892.
+#' Tian, Y. and Feng, Y., 2021(a). RaSE: A variable screening framework via random subspace ensembles. Journal of the American Statistical Association, (just-accepted), pp.1-30.
 #'
 #' Tian, Y. and Feng, Y., 2021(b). RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
 #'

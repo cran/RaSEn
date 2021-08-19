@@ -4,17 +4,25 @@
 \alias{predict.RaSE}
 \title{Predict the outcome of new observations based on the estimated RaSE classifier.}
 \usage{
-\method{predict}{RaSE}(object, newx, ...)
+\method{predict}{RaSE}(object, newx, type = c("vote", "prob", "raw-vote", "raw-prob"), ...)
 }
 \arguments{
 \item{object}{fitted \code{'RaSE'} object using \code{Rase}.}
 
 \item{newx}{a set of new observations. Each row of \code{newx} is a new observation.}
 
+\item{type}{the type of prediction output. Can be 'vote', 'prob', 'raw-vote' or 'raw-prob'. Default = 'vote'.
+\itemize{
+\item vote: output the predicted class (by voting and cut-off) of new observations. Avalilable for all base learner types.
+\item prob: output the predicted probabilities (posterior probability of each observation to be class 1) of new observations. It is the average probability over all base learners.
+\item raw-vote: output the predicted class of new observations for all base learners. It is a \code{n} by \code{B1} matrix. \code{n} is the test sample size and \code{B1} is the number of base learners used in RaSE. Avalilable for all base learner types.
+\item raw-prob: output the predicted probabilities (posterior probability of each observation to be class 1) of new observations for all base learners. It is a \code{n} by \code{B1} matrix.
+}}
+
 \item{...}{additional arguments.}
 }
 \value{
-The predicted labels for new observations.
+depends on the parameter \code{type}. See the list above.
 }
 \description{
 Predict the outcome of new observations based on the estimated RaSE classifier.

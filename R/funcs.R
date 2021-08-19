@@ -26,40 +26,58 @@ gamma_classifier <- function(t0.mle, t1.mle, p0, p1, newx, S) {
 }
 
 
-calc_ebic <- function(x, y, S, gam) {
+calc_ebic <- function(x, y, S, gam, weights = rep(1, length(y))/length(y)) {
     n <- nrow(x)
     p <- ncol(x)
     if(length(unique(y)) > 2) {
-        fit <- multinom(y ~ x[, S, drop = F]-1, family = "multinomial", trace = FALSE)
+        fit <- multinom(y ~ x[, S, drop = F], family = "multinomial", trace = FALSE)
     } else {
-        fit <- glm(y ~ x[, S, drop = F]-1, family = "binomial", trace = FALSE)
+        fit <- glm(y ~ x[, S, drop = F], family = "binomial", trace = FALSE, weights = weights)
     }
 
 
     return (deviance(fit) + (length(unique(y))-1)*length(S)*(log(n) + 2*gam*log(p)))
 }
 
-calc_aic <- function(x, y, S) {
+calc_ebic_glmnet <- function(x, y, S, gam, weights, lower.limits, upper.limits) {
+    n <- nrow(x)
+    p <- ncol(x)
+
+    fit <- glmnet(x = x[, S, drop = F], y = y, alpha = 1, lambda = 0, weights = weights, family = "binomial", lower.limits = lower.limits, upper.limits = upper.limits)
+
+    return (deviance(fit) + (length(unique(y))-1)*length(S)*(log(n) + 2*gam*log(p)))
+}
+
+
+calc_aic <- function(x, y, S, weights = rep(1, length(y))/length(y)) {
     n <- nrow(x)
     p <- ncol(x)
     if(length(unique(y)) > 2) {
-        fit <- multinom(y ~ x[, S, drop = F]-1, family = "multinomial", trace = FALSE)
+        fit <- multinom(y ~ x[, S, drop = F], family = "multinomial", trace = FALSE)
     } else {
-        fit <- glm(y ~ x[, S, drop = F]-1, family = "binomial", trace = FALSE)
+        fit <- glm(y ~ x[, S, drop = F], family = "binomial", trace = FALSE, weights = weights)
     }
-
 
     return (deviance(fit) + (length(unique(y))-1)*length(S)*2)
 }
 
-ric <- function(model, x, y, S, posterior0 = NULL, posterior1 = NULL, deg = NULL, p0 = NULL, p1 = NULL, t0.mle = NULL, t1.mle = NULL, mu0.mle = NULL,  mu1.mle = NULL, Sigma.mle = NULL, Sigma0.mle = NULL, Sigma1.mle = NULL, ...) {
+calc_aic_glmnet <- function(x, y, S, weights, lower.limits, upper.limits) {
+    n <- nrow(x)
+    p <- ncol(x)
+
+    fit <- glmnet(x = x[, S, drop = F], y = y, alpha = 1, lambda = 0, weights = weights, family = "binomial", lower.limits = lower.limits, upper.limits = upper.limits)
+
+    return (deviance(fit) + (length(unique(y))-1)*length(S)*2)
+}
+
+ric <- function(model, x, y, S, posterior0 = NULL, posterior1 = NULL, deg = NULL, p0 = NULL, p1 = NULL, t0.mle = NULL, t1.mle = NULL, mu0.mle = NULL,  mu1.mle = NULL, Sigma.mle = NULL, Sigma0.mle = NULL, Sigma1.mle = NULL, weights = NULL,...) {
     list2env(list(...), environment())
     n <- length(y)
     ind0 <- which(y == 0)
     ind1 <- which(y == 1)
     lik <- rep(0, n)
     if (model == "other") {
-        return(-2 * p0 * sum(log(posterior0/posterior1)[ind0]) - 2 * p1 * sum(log(posterior1/posterior0)[ind1]) + deg(length(S))/sqrt(n) *
+        return(-2 * p0 * sum(log(posterior0/posterior1)[ind0]*weights[ind0]) - 2 * p1 * sum(log(posterior1/posterior0)[ind1]*weights[ind1]) + deg(length(S))/sqrt(n) *
             log(log(n)))
     }
 

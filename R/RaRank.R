@@ -19,7 +19,7 @@
 #' @param iteration indicates results from which iteration to use. It should be an positive integer. Default = the maximal interation round used by the output from \code{RaScreen}.
 #' @return Selected variables (indexes).
 #' @references
-#' Tian, Y. and Feng, Y., 2021(a). RaSE: A Variable Screening Framework via Random Subspace Ensembles. arXiv preprint arXiv:2102.03892.
+#' Tian, Y. and Feng, Y., 2021(a). RaSE: A variable screening framework via random subspace ensembles. Journal of the American Statistical Association, (just-accepted), pp.1-30.
 #'
 #' @examples
 #' \dontrun{
