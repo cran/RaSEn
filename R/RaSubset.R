@@ -5,7 +5,7 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
     p0 <- sum(ytrain == 0)/length(ytrain)
     p1 <- sum(ytrain == 1)/length(ytrain)
 
-    if (base == "gamma") {
+    if (all(base == "gamma")) {
         if (criterion == "nric") {
             subspace.list <- sapply(1:B2, function(i) {
                 # the last row is training error for each i in 1:B2
@@ -38,15 +38,15 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
         }
 
         if (criterion == "cv") {
-            stop("minimizing cross-validation error is not available when base = \"gamma\", please choose other criteria")
+            stop("minimizing cross-validation error is not available when base = \"gamma\", please choose other criterion")
         }
 
         if (criterion == "ebic") {
-            stop("minimizing eBIC is not available when base = \"gamma\", please choose other criteria")
+            stop("minimizing eBIC is not available when base = \"gamma\", please choose other criterion")
         }
 
         if (criterion == "loo") {
-            stop("minimizing leave-one-out error is not available when base = \"gamma\", please choose other criteria")
+            stop("minimizing leave-one-out error is not available when base = \"gamma\", please choose other criterion")
         }
 
         i0 <- which.min(subspace.list)
@@ -55,7 +55,7 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
         ytrain.pred <- factor(gamma_classifier(t0.mle, t1.mle, p0, p1, newx = xtrain, S))
     }
 
-    if (base == "logistic") {
+    if (all(base == "logistic")) {
         if (criterion == "auc") {
             if (all(is.null(lower.limits)) && all(is.null(upper.limits))) {
                 subspace.list <- sapply(1:B2, function(i) {
@@ -185,7 +185,7 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
                     # the last row is training error for each i in 1:B2
                     Si <- S[, i][!is.na(S[, i])]  # current subspace
                     xtrain.r <- xtrain[, Si, drop = F]
-                    mean(as.numeric(I(predict(glm(y ~ .-1, data = data.frame(x = xtrain.r, y = ytrain), family = "binomial", weights = weights), data.frame(x = xtrain.r)) >
+                    mean(as.numeric(I(predict(glm(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), family = "binomial", weights = weights), data.frame(x = xtrain.r)) >
                       0)) != ytrain, na.rm = TRUE)
                 })
             } else {
@@ -231,7 +231,7 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
         }
 
         if (criterion == "loo") {
-            stop("minimizing leave-one-out error is not available when base = \"logistic\", please choose other criteria")
+            stop("minimizing leave-one-out error is not available when base = \"logistic\", please choose other criterion")
         }
 
         i0 <- which.min(subspace.list)
@@ -249,7 +249,7 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
 
     }
 
-    if (base == "svm") {
+    if (all(base == "svm")) {
         if (!is.character(kernel)) {
             kernel <- "linear"
         }
@@ -297,27 +297,27 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
         }
 
         if (criterion == "ebic") {
-            stop("minimizing eBIC is not available when base = \"svm\", please choose other criteria")
+            stop("minimizing eBIC is not available when base = \"svm\", please choose other criterion")
         }
 
         if (criterion == "ric") {
-            stop("minimizing RIC is not available when base = \"svm\", please choose other criteria")
+            stop("minimizing RIC is not available when base = \"svm\", please choose other criterion")
         }
 
         if (criterion == "loo") {
-            stop("minimizing leave-one-out error is not available when base = \"svm\", please choose other criteria")
+            stop("minimizing leave-one-out error is not available when base = \"svm\", please choose other criterion")
         }
 
         i0 <- which.min(subspace.list)
         S <- S[!is.na(S[, i0]), i0]  # final optimal subspace
 
         xtrain.r <- xtrain[, S, drop = F]
-        fit <- svm(x = xtrain.r, y = ytrain, kernel = kernel, type = "C-classification")
+        fit <- svm(x = xtrain.r, y = ytrain, kernel = kernel, type = "C-classification", ...)
         ytrain.pred <- as.numeric(predict(fit, xtrain.r)) - 1
     }
 
 
-    if (base == "randomforest") {
+    if (all(base == "randomforest")) {
         if (criterion == "auc") {
             subspace.list <- sapply(1:B2, function(i) {
                 # the last row is training error for each i in 1:B2
@@ -361,15 +361,15 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
         }
 
         if (criterion == "ebic") {
-            stop("minimizing eBIC is not available when base = \"randomforest\", please choose other criteria")
+            stop("minimizing eBIC is not available when base = \"randomforest\", please choose other criterion")
         }
 
         if (criterion == "ric") {
-            stop("minimizing RIC is not available when base = \"randomforest\", please choose other criteria")
+            stop("minimizing RIC is not available when base = \"randomforest\", please choose other criterion")
         }
 
         if (criterion == "loo") {
-            stop("minimizing leave-one-out error is not available when base = \"randomforest\", please choose other criteria")
+            stop("minimizing leave-one-out error is not available when base = \"randomforest\", please choose other criterion")
         }
 
         i0 <- which.min(subspace.list)
@@ -380,7 +380,7 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
         ytrain.pred <- as.numeric(predict(fit, xtrain.r)) - 1
     }
 
-    if (base == "knn") {
+    if (all(base == "knn")) {
         if (criterion == "auc") {
             subspace.list <- sapply(1:B2, function(i) {
                 d <- length(S[, i][!is.na(S[, i])])  # subspace size
@@ -477,8 +477,11 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
 
             xtrain.r <- xtrain[, S, drop = F]
 
-            knn.test <- sapply(k, function(j) {
-                mean(knn.cv(xtrain.r, ytrain, j, use.all = FALSE) != ytrain, na.rm = TRUE)
+            knn.test <- sapply(k, function(l) {
+                mean(sapply(1:cv, function(j) {
+                    mean(predict(knn3(x = xtrain.r[-folds[[j]], ,drop = F], y = factor(ytrain[-folds[[j]]]), k = l, use.all = FALSE), xtrain.r[folds[[j]], , drop = F], type = "class") != ytrain[folds[[j]]], na.rm = TRUE)
+                }))
+
             })
             k.op <- k[which.min(knn.test)]
             fit <- knn3(x = xtrain.r, y = factor(ytrain), k = k.op, use.all = FALSE)
@@ -486,27 +489,28 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
         }
 
         if (criterion == "training") {
-            stop("minimizing training error is not available when base = \"knn\", please choose other criteria")
+            stop("minimizing training error is not available when base = \"knn\", please choose other criterion")
         }
 
         if (criterion == "ebic") {
-            stop("minimizing eBIC is not available when base = \"knn\", please choose other criteria")
+            stop("minimizing eBIC is not available when base = \"knn\", please choose other criterion")
         }
 
         if (criterion == "ric") {
-            stop("minimizing RIC is not available when base = \"knn\", please choose other criteria")
+            stop("minimizing RIC is not available when base = \"knn\", please choose other criterion")
         }
 
     }
 
-    if (base == "tree") {
+    if (all(base == "tree")) {
+        ytrain <- factor(ytrain)
         if (criterion == "auc") {
             subspace.list <- sapply(1:B2, function(i) {
                 # the last row is training error for each i in 1:B2
                 Si <- S[, i][!is.na(S[, i])]  # current subspace
                 xtrain.r <- xtrain[, Si, drop = F]
                 fit <- rpart(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), method = "class")
-                score <- as.numeric(predict(fit, data = data.frame(x = xtrain.r), type = "prob")[, 2])
+                score <- as.numeric(predict(fit, data.frame(x = xtrain.r), type = "prob")[, 2])
                 -auc(ytrain, score)
             })
         }
@@ -517,7 +521,7 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
                 Si <- S[, i][!is.na(S[, i])]  # current subspace
                 xtrain.r <- xtrain[, Si, drop = F]
                 fit <- rpart(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), method = "class")
-                mean((as.numeric(predict(fit, data = data.frame(x = xtrain.r), type = "class")) - 1) != ytrain, na.rm = TRUE)
+                mean((as.numeric(predict(fit, data.frame(x = xtrain.r), type = "class")) - 1) != ytrain, na.rm = TRUE)
             })
         }
 
@@ -528,7 +532,7 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
                 xtrain.r <- xtrain[, Si, drop = F]
                 xval.r <- xval[, Si, drop = F]
                 fit <- rpart(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), method = "class")
-                mean((as.numeric(predict(fit, data = data.frame(x = xval.r), type = "class")) - 1) != yval, na.rm = TRUE)
+                mean((as.numeric(predict(fit, data.frame(x = xval.r), type = "class")) - 1) != yval, na.rm = TRUE)
             })
         }
 
@@ -539,22 +543,22 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
                 Si <- S[, i][!is.na(S[, i])]  # current subspace
                 mean(sapply(1:cv, function(j) {
                   fit <- rpart(y ~ ., data = data.frame(x = xtrain[-folds[[j]], Si, drop = F], y = ytrain[-folds[[j]]]), method = "class")
-                  mean((as.numeric(predict(fit, data = data.frame(x = xtrain[folds[[j]], Si, drop = F]), type = "class")) - 1) != ytrain[folds[[j]]],
+                  mean((as.numeric(predict(fit, data.frame(x = xtrain[folds[[j]], Si, drop = F]), type = "class")) - 1) != ytrain[folds[[j]]],
                     na.rm = TRUE)
                 }))
             })
         }
 
         if (criterion == "ric") {
-            stop("minimizing RIC is not available when base = \"tree\", please choose other criteria")
+            stop("minimizing RIC is not available when base = \"tree\", please choose other criterion")
         }
 
         if (criterion == "ebic") {
-            stop("minimizing eBIC is not available when base = \"tree\", please choose other criteria")
+            stop("minimizing eBIC is not available when base = \"tree\", please choose other criterion")
         }
 
         if (criterion == "loo") {
-            stop("minimizing leave-one-out error is not available when base = \"tree\", please choose other criteria")
+            stop("minimizing leave-one-out error is not available when base = \"tree\", please choose other criterion")
         }
 
         i0 <- which.min(subspace.list)
@@ -562,10 +566,10 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
 
         xtrain.r <- xtrain[, S, drop = F]
         fit <- rpart(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), method = "class")
-        ytrain.pred <- as.numeric(predict(fit, data.frame(x = xtrain.r), class = "class")) - 1
+        ytrain.pred <- predict(fit, data.frame(x = xtrain.r), type = "class")
     }
 
-    if (base == "lda") {
+    if (all(base == "lda")) {
         if (criterion == "auc") {
             subspace.list <- sapply(1:B2, function(i) {
                 Si <- S[, i][!is.na(S[, i])]  # current subspace
@@ -644,19 +648,19 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
         }
 
         if (criterion == "loo") {
-            stop("minimizing leave-one-out error is not available when base = \"lda\", please choose other criteria")
+            stop("minimizing leave-one-out error is not available when base = \"lda\", please choose other criterion")
         }
 
         i0 <- which.min(subspace.list)
         S <- S[!is.na(S[, i0]), i0]  # final optimal subspace
 
         xtrain.r <- xtrain[, S, drop = F]
-        fit <- lda(x = as.matrix(xtrain.r), grouping = ytrain)
+        fit <- lda(x = as.matrix(xtrain.r), grouping = ytrain, ...)
         ytrain.pred <- predict(fit, as.matrix(xtrain.r))$class
 
     }
 
-    if (base == "qda") {
+    if (all(base == "qda")) {
         if (criterion == "auc") {
             subspace.list <- sapply(1:B2, function(i) {
                 Si <- S[, i][!is.na(S[, i])]  # current subspace
@@ -714,17 +718,189 @@ RaSubset <- function(xtrain, ytrain, xval, yval, B2, S, base, k, criterion, cv, 
         }
 
         if (criterion == "loo") {
-            stop("minimizing leave-one-out error is not available when base = \"qda\", please choose other criteria")
+            stop("minimizing leave-one-out error is not available when base = \"qda\", please choose other criterion")
         }
 
         i0 <- which.min(subspace.list)
         S <- S[!is.na(S[, i0]), i0]  # final optimal subspace
 
         xtrain.r <- xtrain[, S, drop = F]
-        fit <- qda(x = xtrain.r, grouping = ytrain)
+        fit <- qda(x = xtrain.r, grouping = ytrain, ...)
         ytrain.pred <- predict(fit, xtrain.r)$class
     }
 
-    return(list(fit = fit, ytrain.pred = as.numeric(ytrain.pred) - 1, subset = S))
+    if (length(unique(base)) == 1) {
+        return(list(fit = fit, ytrain.pred = as.numeric(ytrain.pred) - 1, subset = S, base.list = base[i0]))
+    }
+
+    # super RaSE
+    # ---------------------------------------------------
+
+    if (length(unique(base)) > 1) {
+        if (criterion == "training") {
+            subspace.list <- sapply(1:B2, function(i) {
+                Si <- S[, i][!is.na(S[, i])]  # current subspace
+                xtrain.r <- xtrain[, Si, drop = F]
+                if (base[i] == "qda"){
+                    mean(predict(qda(x = xtrain.r, grouping = ytrain), xtrain.r)$class != ytrain, na.rm = TRUE)
+                } else if (base[i] == "lda"){
+                    mean(predict(lda(x = xtrain.r, grouping = ytrain), xtrain.r)$class != ytrain, na.rm = TRUE)
+                } else if (base[i] == "svm"){
+                    mean(as.numeric(predict(svm(x = xtrain.r, y = ytrain, kernel = kernel, type = "C-classification", ...), xtrain.r)) - 1 != ytrain, na.rm = TRUE)
+                } else if (base[i] == "tree"){
+                    ytrain <- factor(ytrain)
+                    fit <- rpart(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), method = "class")
+                    score <- as.numeric(predict(fit, data.frame(x = xtrain.r), type = "prob")[, 2])
+                    -auc(ytrain, score)
+                } else if (base[i] == "randomforest"){
+                    mean(as.numeric(predict(randomForest(x = xtrain.r, y = factor(ytrain)), xtrain.r)) - 1 != factor(ytrain), na.rm = TRUE)
+                } else if (base[i] == "logistic"){
+                    mean(as.numeric(I(predict(glm(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), family = "binomial", weights = weights), data.frame(x = xtrain.r)) > 0)) != ytrain, na.rm = TRUE)
+                } else if (base[i] == "knn"){
+                    stop("'criterion' cannot be 'training' when base classifiers include 'knn'! Please check your input.")
+                }
+            })
+        } else if (criterion == "cv") {
+            if (!is.character(kernel)) {
+                kernel <- "linear"
+            }
+            folds <- createFolds(ytrain, k = cv)
+            subspace.list <- sapply(1:B2, function(i) {
+                Si <- S[, i][!is.na(S[, i])]  # current subspace
+                xtrain.r <- xtrain[, Si, drop = F]
+                if (base[i] == "qda"){
+                    mean(sapply(1:cv, function(j) {
+                        mean(predict(qda(x = xtrain.r[-folds[[j]], , drop = F], grouping = ytrain[-folds[[j]]]), xtrain.r[folds[[j]], , drop = F])$class !=
+                                 ytrain[folds[[j]]], na.rm = TRUE)
+                    }))
+                } else if (base[i] == "lda"){
+                    mean(sapply(1:cv, function(j) {
+                        mean(predict(lda(x = xtrain.r[-folds[[j]], , drop = F], grouping = ytrain[-folds[[j]]]), xtrain.r[folds[[j]], , drop = F])$class !=
+                                 ytrain[folds[[j]]], na.rm = TRUE)
+                    }))
+                } else if (base[i] == "svm"){
+                    mean(sapply(1:cv, function(j) {
+                        mean(as.numeric(predict(svm(x = xtrain.r[-folds[[j]], , drop = F], y = ytrain[-folds[[j]]], kernel = kernel, type = "C-classification", ...), xtrain.r[folds[[j]], , drop = F])) - 1 != ytrain[folds[[j]]], na.rm = TRUE)
+                    }))
+                } else if (base[i] == "tree"){
+                    ytrain <- factor(ytrain)
+                    mean(sapply(1:cv, function(j) {
+                        fit <- rpart(y ~ ., data = data.frame(x = xtrain.r[-folds[[j]], , drop = F], y = ytrain[-folds[[j]]]), method = "class")
+                        mean((as.numeric(predict(fit, data.frame(x = xtrain.r[folds[[j]], , drop = F]), type = "class")) - 1) != ytrain[folds[[j]]], na.rm = TRUE)
+                    }))
+                } else if (base[i] == "randomforest"){
+                    mean(sapply(1:cv, function(j) {
+                        mean(as.numeric(predict(randomForest(x = xtrain.r[-folds[[j]], , drop = F], y = factor(ytrain)[-folds[[j]]]), xtrain.r[folds[[j]], , drop = F])) - 1 != factor(ytrain)[folds[[j]]], na.rm = TRUE)
+                    }))
+                } else if (base[i] == "logistic"){
+                    mean(sapply(1:cv, function(j) {
+                        mean(as.numeric(I(predict(glm(y ~ ., data = data.frame(x = xtrain.r[-folds[[j]], , drop = F], y = ytrain[-folds[[j]]]), family = "binomial", weights = weights), data.frame(x = xtrain.r[folds[[j]], , drop = F])) > 0)) != ytrain[folds[[j]]], na.rm = TRUE)
+                    }))
+                } else if (base[i] == "knn") {
+                    knn.test <- sapply(k, function(l) {
+                        mean(sapply(1:cv, function(j) {
+                            mean(predict(knn3(x = xtrain.r[-folds[[j]], , drop = F], y = factor(ytrain[-folds[[j]]]), k = l, use.all = FALSE), xtrain.r[folds[[j]], , drop = F], type = "class") != ytrain[folds[[j]]], na.rm = TRUE)
+                        }))
+                    })
+                    min(knn.test)
+                }
+            })
+        } else if (criterion == "auc") {
+            subspace.list <- sapply(1:B2, function(i) {
+                Si <- S[, i][!is.na(S[, i])]  # current subspace
+                xtrain.r <- xtrain[, Si, drop = F]
+                if (base[i] == "qda"){
+                    score <- as.numeric(predict(qda(x = xtrain.r, grouping = ytrain), xtrain.r)$x)
+                    -auc(ytrain, score)
+                } else if (base[i] == "lda"){
+                    score <- as.numeric(predict(lda(x = xtrain.r, grouping = ytrain), xtrain.r)$x)
+                    -auc(ytrain, score)
+                } else if (base[i] == "svm"){
+                    stop("'criterion' cannot be 'auc' when base classifiers include 'svm'! Please check your input.")
+                } else if (base[i] == "tree"){
+                    ytrain <- factor(ytrain)
+                    fit <- rpart(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), method = "class")
+                    score <- as.numeric(predict(fit, data.frame(x = xtrain.r), type = "prob")[, 2])
+                    -auc(ytrain, score)
+                } else if (base[i] == "randomforest"){
+                    score <- as.numeric(predict(randomForest(x = xtrain.r, y = factor(ytrain), ...), xtrain.r, type = "prob")[, 1])
+                    -auc(ytrain, score)
+                } else if (base[i] == "logistic"){
+                    score <- predict(glm(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), family = "binomial", weights = weights), data.frame(x = xtrain.r))
+                    -auc(ytrain, score)
+                } else if (base[i] == "knn") {
+                    knn.test <- sapply(k, function(j) {
+                        rs <- knn.cv(xtrain.r, ytrain, j, use.all = FALSE, prob = TRUE)
+                        - auc(ytrain, attr(rs,"prob"))
+                    })
+                    min(knn.test)
+                }
+            })
+        }
+
+        i0 <- which.min(subspace.list)
+        S <- S[!is.na(S[, i0]), i0]  # final optimal subspace
+        xtrain.r <- xtrain[, S, drop = F]
+        if (base[i0] == "qda"){
+            fit <- qda(x = xtrain.r, grouping = ytrain, ...)
+            ytrain.pred <- as.numeric(predict(fit, xtrain.r)$class) - 1
+        }
+        if (base[i0] == "lda"){
+            fit <- lda(x = xtrain.r, grouping = ytrain, ...)
+            ytrain.pred <- as.numeric(predict(fit, xtrain.r)$class) - 1
+        }
+        if (base[i0] == "svm"){
+            fit <- svm(x = xtrain.r, y = ytrain, kernel = kernel, type = "C-classification", ...)
+            ytrain.pred <- as.numeric(predict(fit, xtrain.r)) - 1
+        }
+        if (base[i0] == "tree"){
+            fit <- rpart(y ~ ., data = data.frame(x = xtrain.r, y = factor(ytrain)), method = "class")
+            ytrain.pred <- as.numeric(predict(fit, data.frame(x = xtrain.r), type = "class")) - 1
+        }
+        if (base[i0] == "randomforest"){
+            fit <- randomForest(x = xtrain.r, y = factor(ytrain))
+            ytrain.pred <- as.numeric(predict(fit, xtrain.r)) - 1
+        }
+        if (base[i0] == "logistic"){
+            fit <- glm(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), family = "binomial", weights = weights)
+            ytrain.pred <- as.numeric(I(predict(fit, data.frame(x = xtrain.r)) > 0))
+        }
+        if (base[i0] == "knn") {
+            if (criterion == "loo") {
+                knn.test <- sapply(k, function(j) {
+                    mean(knn.cv(xtrain.r, ytrain, j, use.all = FALSE) != ytrain, na.rm = TRUE)
+                })
+            } else if (criterion == "cv") {
+                knn.test <- sapply(k, function(l) {
+                    mean(sapply(1:cv, function(j) {
+                        mean(predict(knn3(x = xtrain.r[-folds[[j]], , drop = F], y = factor(ytrain[-folds[[j]]]), k = l, use.all = FALSE), xtrain.r[folds[[j]], , drop = F], type = "class") != ytrain[folds[[j]]], na.rm = TRUE)
+                    }))
+                })
+            } else if (criterion == "auc") {
+                knn.test <- sapply(k, function(j) {
+                    rs <- knn.cv(xtrain.r, ytrain, j, use.all = FALSE, prob = TRUE)
+                    - auc(rs, attr(rs,"prob"))
+                })
+            } else if (criterion == "validation") {
+                xval.r <- xval[, S, drop = F]
+                knn.test <- sapply(k, function(j) {
+                    fit <- knn3(x = xtrain.r, y = factor(ytrain), k = j, use.all = FALSE)
+                    mean(as.numeric(predict(fit, xval.r, type = "class")) - 1 != yval)
+                })
+            }
+
+            k.op <- k[which.min(knn.test)]
+            fit <- knn3(x = xtrain.r, y = factor(ytrain), k = k.op, use.all = FALSE)
+            ytrain.pred <- as.numeric(predict(fit, xtrain.r, type = "class")) - 1
+        }
+
+
+
+        return(list(fit = fit, ytrain.pred = ytrain.pred, subset = S, base.list = base[i0]))
+    }
+
+
+
+
 
 }

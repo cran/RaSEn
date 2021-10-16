@@ -86,7 +86,7 @@ RaSubsetsc_c <- function(xtrain, ytrain, xval, yval, B2, S, model, k, criterion,
     }
 
     if (criterion == "loo") {
-      stop("minimizing leave-one-out error is not available when model = \"logistic\", please choose other criteria")
+      stop("minimizing leave-one-out error is not available when model = \"logistic\", please choose other criterion")
     }
 
     i0 <- which.min(subspace.list)
@@ -142,15 +142,15 @@ RaSubsetsc_c <- function(xtrain, ytrain, xval, yval, B2, S, model, k, criterion,
     }
 
     if (criterion == "ebic") {
-      stop("minimizing eBIC is not available when model = \"svm\", please choose other criteria")
+      stop("minimizing eBIC is not available when model = \"svm\", please choose other criterion")
     }
 
     if (criterion == "ric") {
-      stop("minimizing RIC is not available when model = \"svm\", please choose other criteria")
+      stop("minimizing RIC is not available when model = \"svm\", please choose other criterion")
     }
 
     if (criterion == "loo") {
-      stop("minimizing leave-one-out error is not available when model = \"svm\", please choose other criteria")
+      stop("minimizing leave-one-out error is not available when model = \"svm\", please choose other criterion")
     }
 
     i0 <- which.min(subspace.list)
@@ -193,15 +193,15 @@ RaSubsetsc_c <- function(xtrain, ytrain, xval, yval, B2, S, model, k, criterion,
     }
 
     if (criterion == "ebic") {
-      stop("minimizing eBIC is not available when model = \"randomforest\", please choose other criteria")
+      stop("minimizing eBIC is not available when model = \"randomforest\", please choose other criterion")
     }
 
     if (criterion == "ric") {
-      stop("minimizing RIC is not available when model = \"randomforest\", please choose other criteria")
+      stop("minimizing RIC is not available when model = \"randomforest\", please choose other criterion")
     }
 
     if (criterion == "loo") {
-      stop("minimizing leave-one-out error is not available when model = \"randomforest\", please choose other criteria")
+      stop("minimizing leave-one-out error is not available when model = \"randomforest\", please choose other criterion")
     }
 
     i0 <- which.min(subspace.list)
@@ -261,15 +261,15 @@ RaSubsetsc_c <- function(xtrain, ytrain, xval, yval, B2, S, model, k, criterion,
     }
 
     if (criterion == "training") {
-      stop("minimizing training error is not available when model = \"knn\", please choose other criteria")
+      stop("minimizing training error is not available when model = \"knn\", please choose other criterion")
     }
 
     if (criterion == "ebic") {
-      stop("minimizing eBIC is not available when model = \"knn\", please choose other criteria")
+      stop("minimizing eBIC is not available when model = \"knn\", please choose other criterion")
     }
 
     if (criterion == "ric") {
-      stop("minimizing RIC is not available when model = \"knn\", please choose other criteria")
+      stop("minimizing RIC is not available when model = \"knn\", please choose other criterion")
     }
 
   }
@@ -282,7 +282,7 @@ RaSubsetsc_c <- function(xtrain, ytrain, xval, yval, B2, S, model, k, criterion,
         Si <- S[, i][!is.na(S[, i])]  # current subspace
         xtrain.r <- xtrain[, Si, drop = F]
         fit <- rpart(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), method = "class")
-        mean((as.numeric(predict(fit, data = data.frame(x = xtrain.r), type = "class")) - 1) != ytrain, na.rm = TRUE)
+        mean((as.numeric(predict(fit, data.frame(x = xtrain.r), type = "class")) - 1) != ytrain, na.rm = TRUE)
       })
     }
 
@@ -293,7 +293,7 @@ RaSubsetsc_c <- function(xtrain, ytrain, xval, yval, B2, S, model, k, criterion,
         xtrain.r <- xtrain[, Si, drop = F]
         xval.r <- xval[, Si, drop = F]
         fit <- rpart(y ~ ., data = data.frame(x = xtrain.r, y = ytrain), method = "class")
-        mean((as.numeric(predict(fit, data = data.frame(x = xval.r), type = "class")) - 1) != yval, na.rm = TRUE)
+        mean((as.numeric(predict(fit, data.frame(x = xval.r), type = "class")) - 1) != yval, na.rm = TRUE)
       })
     }
 
@@ -304,22 +304,22 @@ RaSubsetsc_c <- function(xtrain, ytrain, xval, yval, B2, S, model, k, criterion,
         Si <- S[, i][!is.na(S[, i])]  # current subspace
         mean(sapply(1:cv, function(j) {
           fit <- rpart(y ~ ., data = data.frame(x = xtrain[-folds[[j]], Si, drop = F], y = ytrain[-folds[[j]]]), method = "class")
-          mean((as.numeric(predict(fit, data = data.frame(x = xtrain[folds[[j]], Si, drop = F]), type = "class")) - 1) != ytrain[folds[[j]]],
+          mean((as.numeric(predict(fit, data.frame(x = xtrain[folds[[j]], Si, drop = F]), type = "class")) - 1) != ytrain[folds[[j]]],
                na.rm = TRUE)
         }))
       })
     }
 
     if (criterion == "ric") {
-      stop("minimizing RIC is not available when model = \"tree\", please choose other criteria")
+      stop("minimizing RIC is not available when model = \"tree\", please choose other criterion")
     }
 
     if (criterion == "ebic") {
-      stop("minimizing eBIC is not available when model = \"tree\", please choose other criteria")
+      stop("minimizing eBIC is not available when model = \"tree\", please choose other criterion")
     }
 
     if (criterion == "loo") {
-      stop("minimizing leave-one-out error is not available when model = \"tree\", please choose other criteria")
+      stop("minimizing leave-one-out error is not available when model = \"tree\", please choose other criterion")
     }
 
     i0 <- which.min(subspace.list)
@@ -387,7 +387,7 @@ RaSubsetsc_c <- function(xtrain, ytrain, xval, yval, B2, S, model, k, criterion,
     }
 
     if (criterion == "loo") {
-      stop("minimizing leave-one-out error is not available when model = \"lda\", please choose other criteria")
+      stop("minimizing leave-one-out error is not available when model = \"lda\", please choose other criterion")
     }
 
     i0 <- which.min(subspace.list)
@@ -455,7 +455,7 @@ RaSubsetsc_c <- function(xtrain, ytrain, xval, yval, B2, S, model, k, criterion,
     }
 
     if (criterion == "loo") {
-      stop("minimizing leave-one-out error is not available when model = \"qda\", please choose other criteria")
+      stop("minimizing leave-one-out error is not available when model = \"qda\", please choose other criterion")
     }
 
     i0 <- which.min(subspace.list)

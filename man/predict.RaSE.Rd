@@ -2,7 +2,7 @@
 % Please edit documentation in R/predict.RaSE.R
 \name{predict.RaSE}
 \alias{predict.RaSE}
-\title{Predict the outcome of new observations based on the estimated RaSE classifier.}
+\title{Predict the outcome of new observations based on the estimated RaSE classifier (Tian, Y. and Feng, Y., 2021).}
 \usage{
 \method{predict}{RaSE}(object, newx, type = c("vote", "prob", "raw-vote", "raw-prob"), ...)
 }
@@ -14,9 +14,9 @@
 \item{type}{the type of prediction output. Can be 'vote', 'prob', 'raw-vote' or 'raw-prob'. Default = 'vote'.
 \itemize{
 \item vote: output the predicted class (by voting and cut-off) of new observations. Avalilable for all base learner types.
-\item prob: output the predicted probabilities (posterior probability of each observation to be class 1) of new observations. It is the average probability over all base learners.
+\item prob: output the predicted probabilities (posterior probability of each observation to be class 1) of new observations. It is the average probability over all base learners. Avalilable only when base leaner is not equal to 'svm' and 'tree'.
 \item raw-vote: output the predicted class of new observations for all base learners. It is a \code{n} by \code{B1} matrix. \code{n} is the test sample size and \code{B1} is the number of base learners used in RaSE. Avalilable for all base learner types.
-\item raw-prob: output the predicted probabilities (posterior probability of each observation to be class 1) of new observations for all base learners. It is a \code{n} by \code{B1} matrix.
+\item raw-prob: output the predicted probabilities (posterior probability of each observation to be class 1) of new observations for all base learners. It is a \code{n} by \code{B1} matrix. Avalilable only when base leaner is not equal to 'svm' and 'tree'.
 }}
 
 \item{...}{additional arguments.}
@@ -25,13 +25,13 @@
 depends on the parameter \code{type}. See the list above.
 }
 \description{
-Predict the outcome of new observations based on the estimated RaSE classifier.
+Predict the outcome of new observations based on the estimated RaSE classifier (Tian, Y. and Feng, Y., 2021).
 }
 \examples{
 \dontrun{
 set.seed(0, kind = "L'Ecuyer-CMRG")
-train.data <- RaModel(1, n = 100, p = 50)
-test.data <- RaModel(1, n = 100, p = 50)
+train.data <- RaModel("classification", 1, n = 100, p = 50)
+test.data <- RaModel("classification", 1, n = 100, p = 50)
 xtrain <- train.data$x
 ytrain <- train.data$y
 xtest <- test.data$x
@@ -40,6 +40,7 @@ ytest <- test.data$y
 model.fit <- Rase(xtrain, ytrain, B1 = 100, B2 = 100, iteration = 0, base = 'lda',
 cores = 2, criterion = 'ric', ranking = TRUE)
 ypred <- predict(model.fit, xtest)
+mean(ypred != ytest)
 }
 
 }

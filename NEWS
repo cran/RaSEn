@@ -1,3 +1,15 @@
+RaSEn v3.0.0 (Release date: 2021-10-16)
+==============
+
+Changes:
+
+* Implemented the super RaSE method introduced in the following paper:
+
+Zhu, J. and Feng, Y., 2021. Super RaSE: Super Random Subspace Ensemble Classification. https://www.preprints.org/manuscript/202110.0042
+
+Super RaSE classifier will be fitted when the parameter "base" equals to a string vector of base classifier types or a numeric probability vector with classifier type names. See the help documentation and the vignette for more details.
+
+
 RaSEn v2.2.0 (Release date: 2021-08-18)
 ==============
 

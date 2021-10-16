@@ -20,7 +20,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-We provide a detailed demo of the usage for the \verb+RaSEn+ package. This package implements the random subspace ensemble classification (RaSE) method (@tian2021rase) and the variable screening approach via RaSE (@tian2021variable).
+We provide a detailed demo of the usage for the \verb+RaSEn+ package. This package implements the random subspace ensemble classification (RaSE) method (@tian2021rase), the variable screening approach via RaSE (@tian2021variable) and the super RaSE method (@zhu2021super).
 
 * [Random Subspace Ensemble Classification](#rase)
 
@@ -31,6 +31,8 @@ We provide a detailed demo of the usage for the \verb+RaSEn+ package. This packa
   + [How to fit a RaSE classifier for prediction](#fit)
 
   + [How to use RaSE for feature ranking](#fk)
+  
+  + [Super RaSE](#super)
 
 * [Variable Screening via Random Subspace Ensembles](#screening)
 
@@ -160,12 +162,27 @@ grid.arrange(plot_lda, plot_qda, plot_knn, plot_logistic, ncol=2)
 ```
 From four figures, it can be noticed that feature 1, 2 and 5 obtain high selected percentage among all $p = 50$ features under LDA, QDA and $k$NN models, implying their importance in classification model. We can set a positive iteration number to increase the selected percentage of three signals among $B_1$ subspaces, which may improve the performance.
 
+## Super RaSE{#super}
+In RaSE, we consider only a single type of base classifiers (e.g. LDA, QDA, $k$NN, etc.). @zhu2021super extends the idea of RaSE by combining classifiers of different types. For each of the $B_1B_2$ weak learners, the base classifier type is sampled randomly from some given types with corresponding probabilities. For iterative super RaSE, not only the feature sampling probability will be updated based on the feature selected frequencies, but the classifier type sampling probability will be updated according to the type selected frequencies as well. Note that here the feature sampling probability is updated on the basis of feature frequencies in the last iteration for corresponding base classifier type. The user can also fix the classifier type sampling probability. It can be controled by component `base.update` in parameter `super`. The super RaSE will be fitted when the parameter `base` is a string vector of base classifier types or a numeric probability vector with classifier type names. In the first case, the base classifier type will be sampled uniformly, while in the second case, it will be sampled according to the provided probability. 
+
+The following example shows how to fit a super RaSE classifier which mixes $k$NN, LDA and logistic regression.
+
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=70)}
+fit.super <- Rase(xtrain = xtrain, ytrain = ytrain, B1 = 100, B2 = 50, base = c("knn", "lda", "logistic"), super = list(type = "separate", base.update = T), criterion = "cv", cv = 5, iteration = 0, cores = 2)
+ypred <- predict(fit.super, xtest)
+mean(ypred != ytest)
+```
+We can look at the sampling percentage of each feature from each classifier type and the base classifier type selected percentages.
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=70)}
+fit.super$ranking.feature
+fit.super$ranking.base
+```
 
 # Variable Screening via Random Subspace Ensemble{#screening}
 In this section, we describe how to apply RaSE for variable screening.
 
 ## Introduction{#intro2}
-We follow the aforementioned notations. Althought @tian2021rase only discusses the classification problem, RaSE framework can be imediately applied for continuous response with no extra effort. As before, we would like to select $B_1$ subspaces $\{S_{j*}\}_{j=1}^{B_1}$, for each of which $B_2$ candidate subspaces $\{S_{jk}\}_{k=1}^{B_2}$ are generated. Some specific criterion is required for subspace selection. The selected percentage of features in $\{S_{j*}\}_{j=1}^{B_1}$ can be used for variable screening (@tian2021variable).
+We follow the aforementioned notations. Although @tian2021rase only discusses the classification problem, RaSE framework can be imediately applied for continuous response with no extra effort. As before, we would like to select $B_1$ subspaces $\{S_{j*}\}_{j=1}^{B_1}$, for each of which $B_2$ candidate subspaces $\{S_{jk}\}_{k=1}^{B_2}$ are generated. Some specific criterion is required for subspace selection. The selected percentage of features in $\{S_{j*}\}_{j=1}^{B_1}$ can be used for variable screening (@tian2021variable).
 
 ## Variable screening via RaSE{#vs}
 We will present how to do variable screening through RaSE framework in this section. First we generate the data from the following model (model 1 in @tian2021rase, model II in @fan2008sure).

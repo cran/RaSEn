@@ -13,8 +13,8 @@ Rase(
   B2 = 500,
   D = NULL,
   dist = NULL,
-  base = c("lda", "qda", "knn", "logistic", "tree", "svm", "randomforest", "gamma",
-    "NULL"),
+  base = NULL,
+  super = list(type = c("separate"), base.update = TRUE),
   criterion = NULL,
   ranking = TRUE,
   k = c(3, 5, 7, 9, 11),
@@ -45,11 +45,11 @@ Rase(
 
 \item{B2}{the number of subspace candidates generated for each weak learner. Default = 500.}
 
-\item{D}{the maximal subspace size when generating random subspaces. Default = \code{NULL}, which is \eqn{min(\sqrt n0, \sqrt n1, p)} when \code{base} = 'qda' and is \eqn{min(\sqrt n, p)} otherwise.}
+\item{D}{the maximal subspace size when generating random subspaces. Default = \code{NULL}, which is \eqn{min(\sqrt n0, \sqrt n1, p)} when \code{base} = 'qda' and is \eqn{min(\sqrt n, p)} otherwise. For classical RaSE with a single classifier type, \code{D} is a positive integer. For super RaSE with multiple classifier types, \code{D} is a vector indicating different D values used for each base classifier type (the corresponding classifier types should be noted in the names of the vector).}
 
 \item{dist}{the distribution for features when generating random subspaces. Default = \code{NULL}, which represents the uniform distribution. First generate an integer \eqn{d} from \eqn{1,...,D} uniformly, then uniformly generate a subset with cardinality \eqn{d}.}
 
-\item{base}{the type of base classifier. Default = 'lda'.
+\item{base}{the type of base classifier. Default = 'lda'. Can be either a single string chosen from the following options or a string/probability vector. When it indicates a single type of base classifiers, the classical RaSE model (Tian, Y. and Feng, Y., 2021(b)) will be fitted. When it is a string vector which includes multiple base classifier types, a super RaSE model (Zhu, J. and Feng, Y., 2021) will be fitted, by samling base classifiers with equal probabilty. It can also be a probability vector with row names corresponding to the specific classifier type, in which case a super RaSE model will be trained by sampling base classifiers in the given sampling probability.
 \itemize{
 \item lda: linear discriminant analysis. \code{\link[MASS]{lda}} in \code{MASS} package.
 \item qda: quadratic discriminant analysis. \code{\link[MASS]{qda}} in \code{MASS} package.
@@ -61,7 +61,13 @@ Rase(
 \item gamma: Bayesian classifier for multivariate gamma distribution with independent marginals.
 }}
 
-\item{criterion}{the criterion to choose the best subspace for each weak learner. Default = 'ric' when \code{base} = 'lda', 'qda', 'gamma'; default = 'ebic' and set \code{gam} = 0 when \code{base} = 'logistic'; default = 'loo' when \code{base} = 'knn'; default = 'training' when \code{base} = 'tree', 'svm', 'randomforest'.
+\item{super}{a list of control parameters for super RaSE (Zhu, J. and Feng, Y., 2021). Not used when base equals to a single string. Should be a list object with the following components:
+\itemize{
+\item type: the type of super RaSE. Currently the only option is 'separate', meaning that subspace distributions are different for each type of base classifiers.
+\item base.update: indicates whether the sampling probability of base classifiers should be updated during iterations or not. Logistic, default = TRUE.
+}}
+
+\item{criterion}{the criterion to choose the best subspace for each weak learner. For the classical RaSE (when \code{base} includes a single classifier type), default = 'ric' when \code{base} = 'lda', 'qda', 'gamma'; default = 'ebic' and set \code{gam} = 0 when \code{base} = 'logistic'; default = 'loo' when \code{base} = 'knn'; default = 'training' when \code{base} = 'tree', 'svm', 'randomforest'. For the super RaSE (when \code{base} indicates multiple classifiers or the sampling probability of multiple classifiers), default = 'cv' with the number of folds \code{cv} = 5, and it can only be 'cv', 'training' or 'auc'.
 \itemize{
 \item ric: minimizing ratio information criterion with parametric estimation (Tian, Y. and Feng, Y., 2021(b)). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
 \item nric: minimizing ratio information criterion with non-parametric estimation (Tian, Y. and Feng, Y., 2021(b)). Available when \code{base} = 'lda', 'qda', 'gamma' or 'logistic'.
@@ -100,7 +106,7 @@ EBIC = -2 * log-likelihood + |S| * log(n) + 2 * |S| * gam * log(p).
 
 \item{scale}{whether to normalize the data. Logistic, default = FALSE.}
 
-\item{C0}{a positive constant used when \code{iteration} > 1. See Tian, Y. and Feng, Y., 2021(b) for details.}
+\item{C0}{a positive constant used when \code{iteration} > 1. Default = 0.1. See Tian, Y. and Feng, Y., 2021(b) for details.}
 
 \item{kl.k}{the number of nearest neighbors used to estimate RIC in a non-parametric way. Default = \code{NULL}, which means that \eqn{k0 = floor(\sqrt n0)} and \eqn{k1 = floor(\sqrt n1)}. See Tian, Y. and Feng, Y., 2021(b) for details. Only available when \code{criterion} = 'nric'.}
 
@@ -113,7 +119,7 @@ EBIC = -2 * log-likelihood + |S| * log(n) + 2 * |S| * gam * log(p).
 \item{...}{additional arguments.}
 }
 \value{
-An object with S3 class \code{'RaSE'}.
+An object with S3 class \code{'RaSE'} if \code{base} indicates a single base classifier.
 \item{marginal}{the marginal probability for each class.}
 \item{base}{the type of base classifier.}
 \item{criterion}{the criterion to choose the best subspace for each weak learner.}
@@ -125,6 +131,20 @@ An object with S3 class \code{'RaSE'}.
 \item{cutoff}{the empirically optimal threshold.}
 \item{subspace}{sequence of subspaces correponding to B1 weak learners.}
 \item{ranking}{the selected percentage of each feature in B1 subspaces.}
+\item{scale}{a list of scaling parameters, including the scaling center and the scale parameter for each feature. Equals to \code{NULL} when the data is not scaled in \code{RaSE} model fitting.}
+An object with S3 class \code{'super_RaSE'} if \code{base} includes multiple base classifiers or the sampling probability of multiple classifiers.
+\item{marginal}{the marginal probability for each class.}
+\item{base}{the list of B1 base classifier types.}
+\item{criterion}{the criterion to choose the best subspace for each weak learner.}
+\item{B1}{the number of weak learners.}
+\item{B2}{the number of subspace candidates generated for each weak learner.}
+\item{D}{the maximal subspace size when generating random subspaces.}
+\item{iteration}{the number of iterations.}
+\item{fit.list}{sequence of B1 fitted base classifiers.}
+\item{cutoff}{the empirically optimal threshold.}
+\item{subspace}{sequence of subspaces correponding to B1 weak learners.}
+\item{ranking.feature}{the selected percentage of each feature corresponding to each type of classifier.}
+\item{ranking.base}{the selected percentage of each classifier type in the selected B1 learners.}
 \item{scale}{a list of scaling parameters, including the scaling center and the scale parameter for each feature. Equals to \code{NULL} when the data is not scaled in \code{RaSE} model fitting.}
 }
 \description{
@@ -155,17 +175,17 @@ fit <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 1, base = 'qda',
 cores = 2, criterion = 'ric')
 mean(predict(fit, xtest) != ytest)
 
-# test RaSE classifier with knn base classifier
+# test RaSE classifier with kNN base classifier
 fit <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, base = 'knn',
 cores = 2, criterion = 'loo')
 mean(predict(fit, xtest) != ytest)
 
 # test RaSE classifier with logistic regression base classifier
 fit <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, base = 'logistic',
-cores = 2, criterion = 'ebic', gam = 0)
+cores = 2, criterion = 'bic')
 mean(predict(fit, xtest) != ytest)
 
-# test RaSE classifier with svm base classifier
+# test RaSE classifier with SVM base classifier
 fit <- Rase(xtrain, ytrain, B1 = 100, B2 = 50, iteration = 0, base = 'svm',
 cores = 2, criterion = 'training')
 mean(predict(fit, xtest) != ytest)
@@ -174,12 +194,29 @@ mean(predict(fit, xtest) != ytest)
 fit <- Rase(xtrain, ytrain, B1 = 20, B2 = 10, iteration = 0, base = 'randomforest',
 cores = 2, criterion = 'cv', cv = 3)
 mean(predict(fit, xtest) != ytest)
+
+# fit a super RaSE classifier by sampling base learner from kNN, LDA and logistic
+# regression in equal probability
+fit <- Rase(xtrain = xtrain, ytrain = ytrain, B1 = 100, B2 = 100,
+base = c("knn", "lda", "logistic"), super = list(type = "separate", base.update = T),
+criterion = "cv", cv = 5, iteration = 1, cores = 2)
+mean(predict(fit, xtest) != ytest)
+
+# fit a super RaSE classifier by sampling base learner from random forest, LDA and
+# SVM with probability 0.2, 0.5 and 0.3
+fit <- Rase(xtrain = xtrain, ytrain = ytrain, B1 = 100, B2 = 100,
+base = c(randomforest = 0.2, lda = 0.5, svm = 0.3),
+super = list(type = "separate", base.update = F),
+criterion = "cv", cv = 5, iteration = 0, cores = 2)
+mean(predict(fit, xtest) != ytest)
 }
 }
 \references{
 Tian, Y. and Feng, Y., 2021(a). RaSE: A variable screening framework via random subspace ensembles. Journal of the American Statistical Association, (just-accepted), pp.1-30.
 
 Tian, Y. and Feng, Y., 2021(b). RaSE: Random subspace ensemble classification. Journal of Machine Learning Research, 22(45), pp.1-93.
+
+Zhu, J. and Feng, Y., 2021. Super RaSE: Super Random Subspace Ensemble Classification. https://www.preprints.org/manuscript/202110.0042
 
 Chen, J. and Chen, Z., 2008. Extended Bayesian information criteria for model selection with large model spaces. Biometrika, 95(3), pp.759-771.
 
@@ -190,7 +227,7 @@ Akaike, H., 1973. Information theory and an extension of the maximum likelihood 
 Schwarz, G., 1978. Estimating the dimension of a model. The annals of statistics, 6(2), pp.461-464.
 }
 \seealso{
-\code{\link{predict.RaSE}}, \code{\link{RaModel}}, \code{\link{print.RaSE}}, \code{\link{RaPlot}}, \code{\link{RaScreen}}.
+\code{\link{predict.RaSE}}, \code{\link{RaModel}}, \code{\link{print.RaSE}}, \code{\link{print.super_RaSE}}, \code{\link{RaPlot}}, \code{\link{RaScreen}}.
 }
 \author{
 Ye Tian (maintainer, \email{ye.t@columbia.edu}) and Yang Feng. The authors thank Yu Cao (Exeter Finance) and his team for many helpful suggestions and discussions.

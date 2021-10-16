@@ -49,6 +49,15 @@ plot_logistic <- RaPlot(fit.logistic)
 grid.arrange(plot_lda, plot_qda, plot_knn, plot_logistic, ncol=2)
 
 
+## ---- tidy=TRUE, tidy.opts=list(width.cutoff=70)------------------------------
+fit.super <- Rase(xtrain = xtrain, ytrain = ytrain, B1 = 100, B2 = 50, base = c("knn", "lda", "logistic"), super = list(type = "separate", base.update = T), criterion = "cv", cv = 5, iteration = 0, cores = 2)
+ypred <- predict(fit.super, xtest)
+mean(ypred != ytest)
+
+## ---- tidy=TRUE, tidy.opts=list(width.cutoff=70)------------------------------
+fit.super$ranking.feature
+fit.super$ranking.base
+
 ## -----------------------------------------------------------------------------
 train.data <- RaModel("screening", 1, n = 100, p = 100)
 xtrain <- train.data$x
